@@ -9,15 +9,15 @@ import LoraSelector from './LoraSelector';
 import LibraryDialog from './LibraryDialog';
 import { useTheme, getThemeStyles } from '../contexts/ThemeContext';
 // 导入图标
-import iconModel from '../assets/icons/model.svg?url';
-import iconMagic from '../assets/icons/magic.svg?url';
-import iconInitialImg from '../assets/icons/initial_img.svg?url';
-import iconEnhancePrompts from '../assets/icons/enhance_prompts.svg?url';
-import iconNotify from '../assets/icons/notify.svg?url';
-import iconCredits from '../assets/icons/credits.svg?url';
-import iconArrowDown from '../assets/icons/arrow_down.svg?url';
-import iconSwitch from '../assets/icons/switch.svg?url';
-import iconPro from '../assets/icons/pro.svg?url';
+const iconModel = '/assets/icons/model.svg';
+const iconMagic = '/assets/icons/magic.svg';
+const iconInitialImg = '/assets/icons/initial_img.svg';
+const iconEnhancePrompts = '/assets/icons/enhance_prompts.svg';
+const iconNotify = '/assets/icons/notify.svg';
+const iconCredits = '/assets/icons/credits.svg';
+const iconArrowDown = '/assets/icons/arrow_down.svg';
+const iconSwitch = '/assets/icons/switch.svg';
+const iconPro = '/assets/icons/pro.svg';
 
 // Tooltip 组件 - 基于 Figma 设计
 interface TooltipProps {

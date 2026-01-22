@@ -1,17 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ImageLayer } from '../types';
 import { BorderRadius } from '../styles/constants';
-import iconRemix from '../assets/icons/remix.svg?url';
-import iconEdit from '../assets/icons/edit.svg?url';
-import iconDownload from '../assets/icons/download.svg?url';
-import iconInfo from '../assets/icons/info_circle.svg?url';
-import iconKeyframes from '../assets/icons/start_end_frames.svg?url';
-import iconImage from '../assets/icons/image.svg?url';
-import iconMerge from '../assets/icons/copy.svg?url';
-import iconAlbum from '../assets/icons/album.svg?url';
-import iconFillDialog from '../assets/icons/传入3_afferent-three 1.svg?url';
-import iconCopy from '../assets/icons/copy.svg?url';
-import iconCredits from '../assets/icons/credits.svg?url';
+const iconRemix = '/assets/icons/remix.svg';
+const iconEdit = '/assets/icons/edit.svg';
+const iconDownload = '/assets/icons/download.svg';
+const iconInfo = '/assets/icons/info_circle.svg';
+const iconKeyframes = '/assets/icons/start_end_frames.svg';
+const iconImage = '/assets/icons/image.svg';
+const iconMerge = '/assets/icons/copy.svg';
+const iconAlbum = '/assets/icons/album.svg';
+const iconFillDialog = '/assets/icons/%E4%BC%A0%E5%85%A53_afferent-three%201.svg';
+const iconCopy = '/assets/icons/copy.svg';
+const iconCredits = '/assets/icons/credits.svg';
 import { useTheme, getThemeStyles, isLightTheme } from '../contexts/ThemeContext';
 import { getResolutionLevel } from '../utils/imageUtils';
 
