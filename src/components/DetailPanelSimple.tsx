@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ImageLayer } from '../types';
 import { useTheme, getThemeStyles, isLightTheme } from '../contexts/ThemeContext';
+import { Colors, Typography, BorderRadius, Spacing } from '../styles/constants';
 import iconCopy from '../assets/icons/copy.svg?url';
 import iconClose from '../assets/icons/close.svg?url';
 import { getResolutionLevel } from '../utils/imageUtils';
@@ -14,12 +15,39 @@ import { getResolutionLevel } from '../utils/imageUtils';
 interface DetailPanelSimpleProps {
   layer: ImageLayer;
   onClose: () => void;
+  onLayerUpdate?: (layerId: string, updates: Partial<ImageLayer>) => void;
 }
 
-const DetailPanelSimple: React.FC<DetailPanelSimpleProps> = ({ layer, onClose }) => {
+const DetailPanelSimple: React.FC<DetailPanelSimpleProps> = ({ layer, onClose, onLayerUpdate }) => {
   const { themeStyle } = useTheme();
   const isLight = isLightTheme(themeStyle);
   const [copied, setCopied] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editingName, setEditingName] = useState(layer.name || '');
+
+  // 处理名称双击编辑
+  const handleNameDoubleClick = () => {
+    setIsEditingName(true);
+    setEditingName(layer.name || '');
+  };
+
+  // 处理名称提交
+  const handleNameSubmit = () => {
+    if (editingName.trim() && onLayerUpdate) {
+      onLayerUpdate(layer.id, { name: editingName.trim() });
+    }
+    setIsEditingName(false);
+  };
+
+  // 处理键盘事件
+  const handleNameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleNameSubmit();
+    } else if (e.key === 'Escape') {
+      setIsEditingName(false);
+      setEditingName(layer.name || '');
+    }
+  };
 
   // 复制提示词
   const handleCopyPrompt = () => {
@@ -68,16 +96,49 @@ const DetailPanelSimple: React.FC<DetailPanelSimpleProps> = ({ layer, onClose })
           borderBottom: `1px solid ${borderColor}`,
         }}
       >
-        <span
-          style={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: textPrimary,
-            fontFamily: 'SF Pro Display, -apple-system, sans-serif',
-          }}
-        >
-          {layer.name || '图片详情'}
-        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {isEditingName ? (
+            <input
+              type="text"
+              value={editingName}
+              onChange={(e) => setEditingName(e.target.value)}
+              onBlur={handleNameSubmit}
+              onKeyDown={handleNameKeyDown}
+              autoFocus
+              style={{
+                width: '100%',
+                background: isLight ? Colors.background.primary : 'rgba(255, 255, 255, 0.1)',
+                border: `1px solid ${isLight ? Colors.border.active : 'rgba(255, 255, 255, 0.2)'}`,
+                borderRadius: BorderRadius.small,
+                padding: `${Spacing.xs}px ${Spacing.sm}px`,
+                fontSize: 14,
+                fontWeight: 600,
+                color: textPrimary,
+                outline: 'none',
+                fontFamily: 'SF Pro Display, -apple-system, sans-serif',
+                boxSizing: 'border-box',
+              }}
+            />
+          ) : (
+            <span
+              onDoubleClick={handleNameDoubleClick}
+              style={{
+                display: 'block',
+                fontSize: 14,
+                fontWeight: 600,
+                color: textPrimary,
+                fontFamily: 'SF Pro Display, -apple-system, sans-serif',
+                cursor: 'pointer',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+              title="双击编辑名称"
+            >
+              {layer.name || '图片详情'}
+            </span>
+          )}
+        </div>
         {/* 关闭按钮 - 与 LayerPanel 保持一致 */}
         <svg
           width="16"

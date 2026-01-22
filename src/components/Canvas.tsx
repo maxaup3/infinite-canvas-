@@ -4544,8 +4544,7 @@ const Canvas: React.FC<CanvasProps> = ({
                 height: screenHeight,
                 cursor: isDraggingState ? 'grabbing' : isSelected ? 'grab' : 'pointer',
                 userSelect: 'none',
-                zIndex: 2000,
-                borderRadius: '12px',
+                borderRadius: 0,
                 boxSizing: 'border-box',
                 outline: isSelected ? '2px solid rgba(59, 130, 246, 0.8)' : 'none',
                 outlineOffset: 2,
@@ -4624,6 +4623,7 @@ const Canvas: React.FC<CanvasProps> = ({
           <DetailPanelSimple
             layer={detailPanelLayer}
             onClose={handleClose}
+            onLayerUpdate={onLayerUpdate}
           />
         );
       })()}

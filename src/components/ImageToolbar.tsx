@@ -69,13 +69,21 @@ const ImageToolbar: React.FC<ImageToolbarProps> = ({
   const quickEditInputRef = useRef<HTMLTextAreaElement>(null);
   const [editButtonSelected, setEditButtonSelected] = useState(false);
 
-  // Tab 快捷键处理
+  // Tab 快捷键处理 - 只有单图选中时才能唤起/关闭编辑模式
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 仅当有选中图片且没在其他输入框输入时触发
-      if (e.key === 'Tab' && selectedLayers.length > 0 && !showQuickEdit) {
+      // 仅当选中单张图片时触发
+      if (e.key === 'Tab' && selectedLayers.length === 1) {
         e.preventDefault();
-        handleEditClick();
+        if (showQuickEdit) {
+          // 已经在编辑模式，关闭它
+          setShowQuickEdit(false);
+          setEditButtonSelected(false);
+          setQuickEditPrompt('');
+        } else {
+          // 打开编辑模式
+          handleEditClick();
+        }
       }
     };
 
@@ -467,7 +475,7 @@ const ImageToolbar: React.FC<ImageToolbarProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            zIndex: 2001,
+            zIndex: 99998,
           }}
           onClick={() => {
             setShowQuickEdit(false);
@@ -488,7 +496,7 @@ const ImageToolbar: React.FC<ImageToolbarProps> = ({
             padding: '8px',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
             backdropFilter: 'blur(10px)',
-            zIndex: 2002,
+            zIndex: 99999,
             width: 400,
             display: 'flex',
             flexDirection: 'column',
@@ -502,7 +510,10 @@ const ImageToolbar: React.FC<ImageToolbarProps> = ({
             value={quickEditPrompt}
             onChange={(e) => setQuickEditPrompt(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Escape') {
+              if (e.key === 'Enter' && !e.shiftKey && quickEditPrompt.trim()) {
+                e.preventDefault();
+                handleQuickEditSubmit();
+              } else if (e.key === 'Escape') {
                 setShowQuickEdit(false);
                 setEditButtonSelected(false);
                 setQuickEditPrompt('');

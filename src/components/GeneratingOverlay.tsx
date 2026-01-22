@@ -50,9 +50,8 @@ const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({
         background: isLight
           ? 'linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(20, 20, 35, 0.95) 100%)'
           : 'linear-gradient(135deg, rgba(13, 13, 20, 0.95) 0%, rgba(8, 8, 15, 0.95) 100%)',
-        borderRadius: 16,
+        borderRadius: 0,
         overflow: 'hidden',
-        zIndex: 2000,
         border: isLight
           ? '1px solid rgba(255, 255, 255, 0.12)'
           : '1px solid rgba(255, 255, 255, 0.08)',
