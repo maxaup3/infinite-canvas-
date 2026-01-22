@@ -1228,16 +1228,16 @@ const LandingPage: React.FC<LandingPageProps> = ({
       >
         {/* 顶部导航栏 - Tensor.Art 风格 */}
         <div
-          className=""
           style={{
             width: '100%',
             padding: '12px 24px',
             display: 'grid',
             gridTemplateColumns: 'auto 1fr auto',
             alignItems: 'flex-start',
-            borderBottom: 'none',
+            borderBottom: 'none !important',
             background: 'transparent !important',
-            backdropFilter: 'none',
+            backdropFilter: 'none !important',
+            WebkitBackdropFilter: 'none !important',
             position: 'relative',
             zIndex: 100,
           }}

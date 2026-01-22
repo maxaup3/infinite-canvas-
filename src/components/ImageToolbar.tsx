@@ -485,7 +485,7 @@ const ImageToolbar: React.FC<ImageToolbarProps> = ({
             backgroundColor: isLight ? 'rgba(245, 245, 245, 1)' : 'rgba(30, 30, 30, 0.95)',
             border: isLight ? '1px solid rgba(0, 0, 0, 0.06)' : '1px solid rgba(255, 255, 255, 0.1)',
             borderRadius: 12,
-            padding: '12px',
+            padding: '8px',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
             backdropFilter: 'blur(10px)',
             zIndex: 501,
