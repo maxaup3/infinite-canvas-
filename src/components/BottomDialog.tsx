@@ -1002,7 +1002,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
           onClick={() => textareaRef.current?.focus()}
           style={{
             background: isLightTheme ? '#FFFFFF' : '#2A2A2A',
-            backdropFilter: isLightTheme ? 'none' : theme.panelBackdrop,
+            backdropFilter: 'none',
             border: 'none',
             borderRadius: isLandingPage ? '0 12px 12px 12px' : parseInt(theme.panelBorderRadius),
             boxShadow: theme.panelShadow,
