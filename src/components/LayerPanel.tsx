@@ -505,8 +505,8 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                           onLayerUpdate(layer.id, { locked: !layer.locked });
                         }}
                         style={{
-                          width: 16,
-                          height: 16,
+                          width: 14,
+                          height: 14,
                           background: 'transparent',
                           border: 'none',
                           borderRadius: BorderRadius.small,
@@ -524,8 +524,8 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                         <img
                           src={layer.locked ? lockIcon : unlockIcon}
                           alt={layer.locked ? 'Lock' : 'Unlock'}
-                          width={16}
-                          height={16}
+                          width={14}
+                          height={14}
                           style={{ width: '100%', height: '100%', filter: isLight ? 'brightness(0.3)' : 'brightness(0) invert(1)', opacity: 0.85 }}
                         />
                       </button>
@@ -539,8 +539,8 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                           onLayerUpdate(layer.id, { visible: !layer.visible });
                         }}
                         style={{
-                          width: 16,
-                          height: 16,
+                          width: 14,
+                          height: 14,
                           background: 'transparent',
                           border: 'none',
                           borderRadius: BorderRadius.small,
@@ -558,8 +558,8 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                         <img
                           src={!layer.visible ? hideIcon : eyesIcon}
                           alt={layer.visible ? 'Hide' : 'Show'}
-                          width={16}
-                          height={16}
+                          width={14}
+                          height={14}
                           style={{ width: '100%', height: '100%', filter: isLight ? 'brightness(0.3)' : 'brightness(0) invert(1)', opacity: 0.85 }}
                         />
                       </button>
