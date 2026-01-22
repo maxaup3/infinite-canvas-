@@ -29,7 +29,7 @@ const ImageDetails: React.FC<ImageDetailsProps> = ({ layer, onClose, onLayerUpda
     <div
       style={{
         position: 'absolute',
-        top: 80,
+        bottom: 20,
         right: 20,
         width: 244,
         height: 'calc(100vh - 80px)',
