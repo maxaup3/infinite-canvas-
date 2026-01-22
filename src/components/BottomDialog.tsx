@@ -909,7 +909,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                 left: config.mode === 'image' ? 0 : '50%',
                 width: '50%',
                 height: '100%',
-                background: isLightTheme ? '#F0F0F0' : 'rgba(30, 30, 30, 1)',
+                background: isLightTheme ? '#FFFFFF' : 'rgba(30, 30, 30, 1)',
                 borderRadius: '12px 12px 0 0',
                 transition: 'left 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                 zIndex: 0,
