@@ -1006,7 +1006,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
             border: 'none',
             borderRadius: isLandingPage ? '0 12px 12px 12px' : parseInt(theme.panelBorderRadius),
             boxShadow: theme.panelShadow,
-            padding: 8,
+            padding: 12,
             transition: 'all 0.3s ease',
             display: 'flex',
             flexDirection: 'column',
