@@ -1234,10 +1234,9 @@ const LandingPage: React.FC<LandingPageProps> = ({
             display: 'grid',
             gridTemplateColumns: 'auto 1fr auto',
             alignItems: 'flex-start',
-            borderBottom: 'none !important',
-            background: 'transparent !important',
-            backdropFilter: 'none !important',
-            WebkitBackdropFilter: 'none !important',
+            borderBottom: 'none',
+            background: 'transparent',
+            backdropFilter: 'none',
             position: 'relative',
             zIndex: 100,
           }}
