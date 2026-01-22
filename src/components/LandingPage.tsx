@@ -1235,12 +1235,11 @@ const LandingPage: React.FC<LandingPageProps> = ({
             display: 'grid',
             gridTemplateColumns: 'auto 1fr auto',
             alignItems: 'flex-start',
-            borderBottom: `1px solid ${colors.stroke.primary}`,
-            background: 'transparent',
+            borderBottom: 'none',
+            background: 'transparent !important',
             backdropFilter: 'none',
-            position: 'sticky',
-            top: 0,
-            zIndex: 1100,
+            position: 'relative',
+            zIndex: 100,
           }}
         >
           {/* 左侧：菜单按钮 + Logo */}
