@@ -41,7 +41,7 @@ const DetailPanelSimple: React.FC<DetailPanelSimpleProps> = ({ layer, onClose })
       style={{
         position: 'fixed',
         right: 16,
-        top: 76,
+        top: 60,
         width: 220,
         maxHeight: 'calc(100vh - 100px)',
         background: bgColor,
