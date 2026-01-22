@@ -1270,7 +1270,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
                 style={{
                   width: 24,
                   height: 24,
-                  color: isLightTheme ? '#000' : '#fff',
+                  filter: isLightTheme ? 'brightness(0)' : 'brightness(0) invert(1)',
                 }}
               />
             </div>
