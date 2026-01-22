@@ -381,14 +381,14 @@ function AppContent() {
 
         // 添加图层
         if (newLayers.length > 0) {
-          setLayers(prev => [...prev, ...newLayers]);
-
-          // 显示通知 - 已隐藏
-          // const contentType = taskConfig.mode === 'video' ? '个视频' : '张图片';
-          // addToast(`成功生成 ${taskConfig.count} ${contentType}`, 'success');
-
-          // 选中第一张
-          setSelectedLayerIds([newLayers[0].id]);
+          setLayers(prev => {
+            const isFirstImage = prev.length === 0;
+            // 只有第一张图片才默认选中
+            if (isFirstImage) {
+              setSelectedLayerIds([newLayers[0].id]);
+            }
+            return [...prev, ...newLayers];
+          });
         }
       }
     });
