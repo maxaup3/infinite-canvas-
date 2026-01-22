@@ -31,7 +31,7 @@ function AppContent() {
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [editMode, setEditMode] = useState<EditMode>('normal');
-  const [zoom, setZoom] = useState(75);
+  const [zoom, setZoom] = useState(100);
   const [credits] = useState(200.20);
   const [projectName, setProjectName] = useState('Untitled');
   const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(false);
