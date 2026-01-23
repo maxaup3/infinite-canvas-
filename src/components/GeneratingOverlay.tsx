@@ -1,51 +1,51 @@
 import React, { useMemo, useState } from 'react';
 import { useTheme, isLightTheme } from '../contexts/ThemeContext';
 
-// 星座数据
+// 星座数据 - 放大 2 倍，让星星更分散
 const constellations = [
   {
     name: 'ursa-major', // 大熊座（北斗七星）
     lines: [
-      [0, 40, 20, 35], [20, 35, 35, 40], [35, 40, 50, 30], // 勺子部分
-      [50, 30, 70, 20], [70, 20, 85, 10], [85, 10, 100, 0], // 勺柄
+      [0, 80, 40, 70], [40, 70, 70, 80], [70, 80, 100, 60], // 勺子部分
+      [100, 60, 140, 40], [140, 40, 170, 20], [170, 20, 200, 0], // 勺柄
     ],
-    stars: [[0, 40, 2.5], [20, 35, 2], [35, 40, 2], [50, 30, 2.5], [70, 20, 2], [85, 10, 2], [100, 0, 2.5]],
-    width: 110,
-    height: 50,
+    stars: [[0, 80, 2.5], [40, 70, 2], [70, 80, 2], [100, 60, 2.5], [140, 40, 2], [170, 20, 2], [200, 0, 2.5]],
+    width: 220,
+    height: 100,
   },
   {
-    name: 'orion', // 猎户座（完整版）
+    name: 'orion', // 猎户座
     lines: [
-      [25, 0, 35, 0], // 肩膀
-      [25, 0, 20, 20], [35, 0, 40, 20], // 身体上部
-      [20, 20, 30, 25], [30, 25, 40, 20], // 腰带连接
-      [15, 25, 25, 25], [25, 25, 35, 25], // 腰带
-      [20, 20, 10, 45], [40, 20, 50, 45], // 腿
+      [50, 0, 70, 0], // 肩膀
+      [50, 0, 40, 40], [70, 0, 80, 40], // 身体上部
+      [40, 40, 60, 50], [60, 50, 80, 40], // 腰带连接
+      [30, 50, 50, 50], [50, 50, 70, 50], // 腰带
+      [40, 40, 20, 90], [80, 40, 100, 90], // 腿
     ],
-    stars: [[25, 0, 2.5], [35, 0, 2], [20, 20, 2], [40, 20, 2], [15, 25, 2], [25, 25, 2.5], [35, 25, 2], [10, 45, 2], [50, 45, 2]],
-    width: 60,
-    height: 50,
+    stars: [[50, 0, 2.5], [70, 0, 2], [40, 40, 2], [80, 40, 2], [30, 50, 2], [50, 50, 2.5], [70, 50, 2], [20, 90, 2], [100, 90, 2]],
+    width: 120,
+    height: 100,
   },
   {
     name: 'cygnus', // 天鹅座（北十字）
     lines: [
-      [40, 0, 40, 25], [40, 25, 40, 50], // 竖线
-      [0, 20, 40, 25], [40, 25, 80, 30], // 横线（翅膀）
+      [80, 0, 80, 50], [80, 50, 80, 100], // 竖线
+      [0, 40, 80, 50], [80, 50, 160, 60], // 横线（翅膀）
     ],
-    stars: [[40, 0, 2.5], [40, 25, 3], [40, 50, 2], [0, 20, 2], [80, 30, 2]],
-    width: 85,
-    height: 55,
+    stars: [[80, 0, 2.5], [80, 50, 3], [80, 100, 2], [0, 40, 2], [160, 60, 2]],
+    width: 170,
+    height: 110,
   },
   {
     name: 'leo', // 狮子座
     lines: [
-      [0, 30, 15, 20], [15, 20, 30, 25], [30, 25, 45, 15], // 头部弧线
-      [45, 15, 60, 20], [60, 20, 75, 10], // 身体
-      [75, 10, 90, 25], [90, 25, 80, 40], // 后腿和尾巴
+      [0, 60, 30, 40], [30, 40, 60, 50], [60, 50, 90, 30], // 头部弧线
+      [90, 30, 120, 40], [120, 40, 150, 20], // 身体
+      [150, 20, 180, 50], [180, 50, 160, 80], // 后腿和尾巴
     ],
-    stars: [[0, 30, 2], [15, 20, 2.5], [30, 25, 2], [45, 15, 2.5], [60, 20, 2], [75, 10, 2], [90, 25, 2], [80, 40, 2.5]],
-    width: 95,
-    height: 45,
+    stars: [[0, 60, 2], [30, 40, 2.5], [60, 50, 2], [90, 30, 2.5], [120, 40, 2], [150, 20, 2], [180, 50, 2], [160, 80, 2.5]],
+    width: 190,
+    height: 90,
   },
 ];
 
@@ -70,27 +70,36 @@ const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({
   const { themeStyle } = useTheme();
   const isLight = isLightTheme(themeStyle);
 
-  // 随机选择一个星座（组件挂载时确定）
-  const [constellation] = useState(() => constellations[Math.floor(Math.random() * constellations.length)]);
+  // 随机选择一个星座和位置（组件挂载时确定）
+  const [constellationData] = useState(() => {
+    const constellation = constellations[Math.floor(Math.random() * constellations.length)];
+    // 随机位置：10%-70% 范围内（留出星座自身大小的空间）
+    const posX = 10 + Math.random() * 60;
+    const posY = 10 + Math.random() * 50;
+    return { constellation, posX, posY };
+  });
 
-  // 随机生成星星位置 - 使用网格分布确保星星均匀散开
+  // 随机生成星星位置 - 使用更大的网格和更多随机性
   const randomStars = useMemo(() => {
     const stars: Array<{ left: number; top: number; size: number; duration: number; delay: number }> = [];
-    // 使用 4x3 网格，每个格子放一颗星星，避免聚集
-    const cols = 4;
-    const rows = 3;
-    const cellWidth = 80 / cols;  // 每个格子宽度（覆盖 5%-85%）
-    const cellHeight = 75 / rows; // 每个格子高度（覆盖 5%-80%）
+    // 使用 5x4 网格，每个格子有 60% 几率放一颗星星，增加随机感
+    const cols = 5;
+    const rows = 4;
+    const cellWidth = 90 / cols;  // 每个格子宽度（覆盖 5%-95%）
+    const cellHeight = 85 / rows; // 每个格子高度（覆盖 5%-90%）
 
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
-        stars.push({
-          left: 5 + col * cellWidth + Math.random() * cellWidth,
-          top: 5 + row * cellHeight + Math.random() * cellHeight,
-          size: Math.random() > 0.6 ? 3 : 2,
-          duration: 1.2 + Math.random() * 1.5,
-          delay: Math.random() * 3,
-        });
+        // 60% 几率在这个格子放星星，增加不规则感
+        if (Math.random() > 0.4) {
+          stars.push({
+            left: 5 + col * cellWidth + Math.random() * cellWidth,
+            top: 5 + row * cellHeight + Math.random() * cellHeight,
+            size: Math.random() > 0.7 ? 3 : 2,
+            duration: 4 + Math.random() * 4, // 4-8秒，更慢的闪烁
+            delay: Math.random() * 5,
+          });
+        }
       }
     }
     return stars;
@@ -226,25 +235,36 @@ const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({
         />
       ))}
 
-      {/* 星座彩蛋 - 随机一个，居中 */}
+      {/* 星座彩蛋 - 随机位置，连线逐渐显现 */}
       <svg
         style={{
           position: 'absolute',
-          left: '50%',
-          top: '50%',
-          transform: `translate(-50%, -50%)`,
-          width: constellation.width,
-          height: constellation.height,
-          opacity: 0.15,
+          left: `${constellationData.posX}%`,
+          top: `${constellationData.posY}%`,
+          width: constellationData.constellation.width,
+          height: constellationData.constellation.height,
           pointerEvents: 'none',
         }}
       >
-        {constellation.lines.map(([x1, y1, x2, y2], i) => (
-          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="white" strokeWidth="0.8" />
+        {constellationData.constellation.lines.map(([x1, y1, x2, y2], i) => (
+          <line
+            key={i}
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+            stroke="rgba(255, 255, 255, 0.06)"
+            strokeWidth="0.5"
+            style={{
+              animation: `fadeInLine 8s ease-in-out forwards`,
+              animationDelay: `${i * 2}s`,
+              opacity: 0,
+            }}
+          />
         ))}
       </svg>
       {/* 星座星星 */}
-      {constellation.stars.map(([x, y, size], i) => (
+      {constellationData.constellation.stars.map(([x, y, size], i) => (
         <div
           key={`const-${i}`}
           style={{
@@ -253,9 +273,9 @@ const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({
             height: size * 1.2,
             background: 'rgba(255, 255, 255, 0.85)',
             borderRadius: '50%',
-            left: `calc(50% - ${constellation.width / 2}px + ${x}px)`,
-            top: `calc(50% - ${constellation.height / 2}px + ${y}px)`,
-            animation: `twinkle ${1.3 + Math.random() * 1}s ease-in-out infinite`,
+            left: `calc(${constellationData.posX}% + ${x}px)`,
+            top: `calc(${constellationData.posY}% + ${y}px)`,
+            animation: `twinkle ${4 + Math.random() * 4}s ease-in-out infinite`,
             animationDelay: `${i * 0.3}s`,
             boxShadow: '0 0 4px rgba(255, 255, 255, 0.6)',
           }}
@@ -288,6 +308,14 @@ const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({
             50% {
               opacity: 0.9;
               transform: scale(1.2);
+            }
+          }
+          @keyframes fadeInLine {
+            0% {
+              opacity: 0;
+            }
+            100% {
+              opacity: 1;
             }
           }
         `}
