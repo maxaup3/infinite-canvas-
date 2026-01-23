@@ -2624,11 +2624,15 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                       }}>Aspect Ratio</div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                         {['keep', '16:9', '9:16', '1:1', '4:3', '3:4'].map((ratio) => {
+                          const hasReferenceImage = (config.referenceImages?.length ?? 0) > 0;
+                          const isDisabled = ratio === 'keep' && !hasReferenceImage;
                           const isSelected = ratio === config.aspectRatio;
                           const getRatioIcon = (r: string) => {
-                            const color = isSelected
-                              ? (isLightTheme ? theme.textPrimary : '#fff')
-                              : (isLightTheme ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)');
+                            const color = isDisabled
+                              ? (isLightTheme ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)')
+                              : isSelected
+                                ? (isLightTheme ? theme.textPrimary : '#fff')
+                                : (isLightTheme ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)');
                             if (r === 'keep') return <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="3" y="4" width="12" height="10" rx="1.5" stroke={color} strokeWidth="1.2" strokeDasharray="2 1.5"/></svg>;
                             if (r === '16:9') return <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="14" height="8" rx="1.5" stroke={color} strokeWidth="1.2"/></svg>;
                             if (r === '9:16') return <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="5" y="2" width="8" height="14" rx="1.5" stroke={color} strokeWidth="1.2"/></svg>;
@@ -2641,34 +2645,38 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                           return (
                             <button
                               key={ratio}
-                              onClick={() => setConfig({ ...config, aspectRatio: ratio })}
+                              disabled={isDisabled}
+                              onClick={() => !isDisabled && setConfig({ ...config, aspectRatio: ratio })}
                               style={{
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 gap: 4,
                                 padding: '8px 4px',
-                                cursor: 'pointer',
-                                background: isSelected
+                                cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                opacity: isDisabled ? 0.4 : 1,
+                                background: isSelected && !isDisabled
                                   ? (isLightTheme ? 'rgba(56, 189, 255, 0.15)' : 'rgba(56, 189, 255, 0.12)')
                                   : 'transparent',
-                                border: isSelected
+                                border: isSelected && !isDisabled
                                   ? (isLightTheme ? '1px solid rgba(56, 189, 255, 0.4)' : '1px solid rgba(56, 189, 255, 0.3)')
                                   : (isLightTheme ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)'),
                                 borderRadius: BorderRadius.small,
-                                color: isSelected
-                                  ? (isLightTheme ? theme.textPrimary : '#fff')
-                                  : (isLightTheme ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)'),
+                                color: isDisabled
+                                  ? (isLightTheme ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)')
+                                  : isSelected
+                                    ? (isLightTheme ? theme.textPrimary : '#fff')
+                                    : (isLightTheme ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)'),
                                 fontSize: 11,
                                 fontWeight: 500,
                                 fontFamily: Typography.englishBody.fontFamily,
                                 transition: 'all 0.15s ease',
                               }}
                               onMouseEnter={(e) => {
-                                if (!isSelected) e.currentTarget.style.background = theme.buttonBackgroundHover;
+                                if (!isSelected && !isDisabled) e.currentTarget.style.background = theme.buttonBackgroundHover;
                               }}
                               onMouseLeave={(e) => {
-                                if (!isSelected) e.currentTarget.style.background = 'transparent';
+                                if (!isSelected && !isDisabled) e.currentTarget.style.background = 'transparent';
                               }}
                             >
                               {getRatioIcon(ratio)}
@@ -2810,11 +2818,15 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                       }}>Aspect Ratio</div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                         {['keep', '16:9', '9:16', '1:1', '4:3', '3:4'].map((ratio) => {
+                          const hasReferenceImage = (config.referenceImages?.length ?? 0) > 0;
+                          const isDisabled = ratio === 'keep' && !hasReferenceImage;
                           const isSelected = ratio === config.aspectRatio;
                           const getRatioIcon = (r: string) => {
-                            const color = isSelected
-                              ? (isLightTheme ? theme.textPrimary : '#fff')
-                              : (isLightTheme ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)');
+                            const color = isDisabled
+                              ? (isLightTheme ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)')
+                              : isSelected
+                                ? (isLightTheme ? theme.textPrimary : '#fff')
+                                : (isLightTheme ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)');
                             if (r === 'keep') return <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="3" y="4" width="12" height="10" rx="1.5" stroke={color} strokeWidth="1.2" strokeDasharray="2 1.5"/></svg>;
                             if (r === '16:9') return <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="14" height="8" rx="1.5" stroke={color} strokeWidth="1.2"/></svg>;
                             if (r === '9:16') return <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><rect x="5" y="2" width="8" height="14" rx="1.5" stroke={color} strokeWidth="1.2"/></svg>;
@@ -2827,34 +2839,38 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                           return (
                             <button
                               key={ratio}
-                              onClick={() => setConfig({ ...config, aspectRatio: ratio })}
+                              disabled={isDisabled}
+                              onClick={() => !isDisabled && setConfig({ ...config, aspectRatio: ratio })}
                               style={{
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 gap: 4,
                                 padding: '8px 4px',
-                                cursor: 'pointer',
-                                background: isSelected
+                                cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                opacity: isDisabled ? 0.4 : 1,
+                                background: isSelected && !isDisabled
                                   ? (isLightTheme ? 'rgba(56, 189, 255, 0.15)' : 'rgba(56, 189, 255, 0.12)')
                                   : 'transparent',
-                                border: isSelected
+                                border: isSelected && !isDisabled
                                   ? (isLightTheme ? '1px solid rgba(56, 189, 255, 0.4)' : '1px solid rgba(56, 189, 255, 0.3)')
                                   : (isLightTheme ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)'),
                                 borderRadius: BorderRadius.small,
-                                color: isSelected
-                                  ? (isLightTheme ? theme.textPrimary : '#fff')
-                                  : (isLightTheme ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)'),
+                                color: isDisabled
+                                  ? (isLightTheme ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)')
+                                  : isSelected
+                                    ? (isLightTheme ? theme.textPrimary : '#fff')
+                                    : (isLightTheme ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)'),
                                 fontSize: 11,
                                 fontWeight: 500,
                                 fontFamily: Typography.englishBody.fontFamily,
                                 transition: 'all 0.15s ease',
                               }}
                               onMouseEnter={(e) => {
-                                if (!isSelected) e.currentTarget.style.background = theme.buttonBackgroundHover;
+                                if (!isSelected && !isDisabled) e.currentTarget.style.background = theme.buttonBackgroundHover;
                               }}
                               onMouseLeave={(e) => {
-                                if (!isSelected) e.currentTarget.style.background = 'transparent';
+                                if (!isSelected && !isDisabled) e.currentTarget.style.background = 'transparent';
                               }}
                             >
                               {getRatioIcon(ratio)}
