@@ -909,7 +909,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                 left: config.mode === 'image' ? 0 : '50%',
                 width: '50%',
                 height: '100%',
-                background: isLightTheme ? '#FFFFFF' : '#2A2A2A',
+                background: isLightTheme ? '#FFFFFF' : '#181818',
                 borderRadius: '12px 12px 0 0',
                 transition: 'left 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                 zIndex: 0,
@@ -1001,7 +1001,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
           data-dialog-main="true"
           onClick={() => textareaRef.current?.focus()}
           style={{
-            background: isLightTheme ? '#FFFFFF' : '#2A2A2A',
+            background: isLightTheme ? '#FFFFFF' : '#181818',
             backdropFilter: 'none',
             border: 'none',
             borderRadius: isLandingPage ? '0 12px 12px 12px' : parseInt(theme.panelBorderRadius),
@@ -3155,9 +3155,9 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                   top: ratioDropdownPosition.top,
                   left: ratioDropdownPosition.left,
                   transform: 'translateY(calc(-100% - 8px))',
-                  background: theme.panelBackground,
-                  backdropFilter: theme.panelBackdrop,
-                  WebkitBackdropFilter: theme.panelBackdrop,
+                  background: isLightTheme ? '#F5F5F5' : '#2A2A2A',
+                  backdropFilter: 'none',
+                  WebkitBackdropFilter: 'none',
                   border: themeStyle === 'cyberpunk' ? 'none' : theme.panelBorder,
                   borderRadius: parseInt(theme.panelBorderRadius),
                   overflow: 'hidden',

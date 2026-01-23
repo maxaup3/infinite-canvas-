@@ -39,11 +39,11 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
         left: position.left,
         transform: 'translateY(calc(-100% - 8px))', // 向上偏移100%高度 + 8px间距
         width: 240, // 精确匹配设计稿
-        background: theme.panelBackground,
-        backdropFilter: theme.panelBackdrop,
+        background: isLightTheme ? '#F5F5F5' : '#2A2A2A',
+        backdropFilter: 'none',
         border: themeStyle === 'cyberpunk' ? 'none' : theme.panelBorder,
         borderImage: themeStyle === 'cyberpunk' ? (theme as any).panelBorderImage : undefined,
-        borderRadius: parseInt(theme.panelBorderRadius),
+        borderRadius: 8,
         boxShadow: theme.panelShadow,
         zIndex: 10001,
         display: 'flex',
