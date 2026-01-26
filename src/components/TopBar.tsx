@@ -318,7 +318,7 @@ const TopBar: React.FC<TopBarProps> = ({
             alignItems: 'center',
             gap: 4,
             padding: '4px 8px',
-            background: theme.buttonBackground,
+            background: isLightTheme ? 'rgba(56, 189, 255, 0.15)' : 'rgba(56, 189, 255, 0.2)',
             backdropFilter: theme.panelBackdrop,
             border: 'none',
             borderRadius: parseInt(theme.buttonBorderRadius),
@@ -329,14 +329,14 @@ const TopBar: React.FC<TopBarProps> = ({
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M10.876 2.8451C10.994 2.4203 10.6746 2 10.2337 2H6.04304C5.75256 2 5.49552 2.18808 5.40763 2.46495L3.55288 8.30739C3.43463 8.67988 3.66068 9.07373 4.04196 9.15951L5.6228 9.5152C5.99078 9.598 6.21685 9.96932 6.12144 10.3342L5.11873 14.1696C5.03323 14.4966 5.43269 14.7286 5.67433 14.4922L12.5251 7.79035C12.888 7.43533 12.7367 6.82112 12.2505 6.67524L10.6253 6.18768C10.2777 6.08341 10.0774 5.72032 10.1745 5.3707L10.876 2.8451Z"
-              fill={isLightTheme ? theme.textAccent : "#38BDFF"}
+              fill="#38BDFF"
               fillOpacity="1"
             />
           </svg>
           <span style={{
             fontSize: Typography.englishHeading.fontSize.medium,
             fontWeight: Typography.englishHeading.fontWeight,
-            color: isLightTheme ? theme.textPrimary : Colors.text.primary,
+            color: isLightTheme ? '#1A8BC9' : '#38BDFF',
             fontFamily: Typography.englishHeading.fontFamily
           }}>
             {Math.floor(credits)}
@@ -351,7 +351,7 @@ const TopBar: React.FC<TopBarProps> = ({
             border: 'none',
             borderRadius: parseInt(theme.buttonBorderRadius),
             padding: '4px 4px',
-            background: theme.buttonBackground,
+            background: isLightTheme ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)',
             backdropFilter: theme.panelBackdrop,
             height: 36,
             transition: 'all 0.3s ease',
