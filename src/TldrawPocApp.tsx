@@ -288,6 +288,9 @@ function TldrawAppContent() {
   const [libraryInsertPosition, setLibraryInsertPosition] = useState<{ x: number; y: number } | null>(null)
   const [clipboardLayers, setClipboardLayers] = useState<ImageLayer[]>([])
   const [isLayerTransforming, setIsLayerTransforming] = useState(false)
+  const [isCameraPanning, setIsCameraPanning] = useState(false)
+  const cameraPanTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastCameraRef = useRef({ x: 0, y: 0, z: 1 })
   const bottomDialogRef = useRef<BottomDialogRef>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const transformTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -401,8 +404,28 @@ function TldrawAppContent() {
     }
   }, [editor, selectedLayerIds, updateSelectedLayerScreenPos])
 
-  // 相机变化时也需要更新位置
+  // 相机变化时也需要更新位置，并检测是否正在平移
   useEffect(() => {
+    const lastCamera = lastCameraRef.current
+    const isPanning = Math.abs(camera.x - lastCamera.x) > 0.5 || Math.abs(camera.y - lastCamera.y) > 0.5
+
+    if (isPanning) {
+      // 相机正在移动，隐藏工具栏
+      setIsCameraPanning(true)
+
+      // 清除之前的超时
+      if (cameraPanTimeoutRef.current) {
+        clearTimeout(cameraPanTimeoutRef.current)
+      }
+
+      // 停止移动后 200ms 显示工具栏
+      cameraPanTimeoutRef.current = setTimeout(() => {
+        setIsCameraPanning(false)
+        cameraPanTimeoutRef.current = null
+      }, 200)
+    }
+
+    lastCameraRef.current = camera
     updateSelectedLayerScreenPos()
   }, [camera, zoom, updateSelectedLayerScreenPos])
 
@@ -1811,8 +1834,8 @@ function TldrawAppContent() {
         isLandingPage={false}
       />
 
-      {/* 选中图层的名称标签和详情图标 - 图层静止时显示，生成中不显示 */}
-      {!isLayerTransforming && selectedLayerIds.length === 1 && selectedLayerScreenPos && selectedLayer &&
+      {/* 选中图层的名称标签和详情图标 - 图层静止时显示，生成中不显示，画布移动时隐藏 */}
+      {!isLayerTransforming && !isCameraPanning && selectedLayerIds.length === 1 && selectedLayerScreenPos && selectedLayer &&
        !generationTasks.some(t => t.status === 'generating' && t.shapeId === selectedLayer.id) && (
         <div
           style={{
@@ -1889,8 +1912,8 @@ function TldrawAppContent() {
         </div>
       )}
 
-      {/* 选中图层的工具栏 - 图层静止时显示，生成中不显示 */}
-      {!isLayerTransforming && selectedLayerIds.length > 0 && selectedLayerScreenPos &&
+      {/* 选中图层的工具栏 - 图层静止时显示，生成中不显示，画布移动时隐藏 */}
+      {!isLayerTransforming && !isCameraPanning && selectedLayerIds.length > 0 && selectedLayerScreenPos &&
        !generationTasks.some(t => t.status === 'generating' && selectedLayerIds.includes(t.shapeId || '')) && (
         <ImageToolbar
           selectedLayers={layers.filter(l => selectedLayerIds.includes(l.id))}
@@ -1933,8 +1956,8 @@ function TldrawAppContent() {
         </div>
       )}
 
-      {/* 视频控制面板 - 仅在图层静止时显示 */}
-      {!isLayerTransforming && selectedLayer?.type === 'video' && selectedLayerScreenPos && (() => {
+      {/* 视频控制面板 - 仅在图层静止时显示，画布移动时隐藏 */}
+      {!isLayerTransforming && !isCameraPanning && selectedLayer?.type === 'video' && selectedLayerScreenPos && (() => {
         const videoElement = videoElementsMap.get(selectedLayer.id)
         if (!videoElement) return null
 
