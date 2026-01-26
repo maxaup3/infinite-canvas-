@@ -1,6 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { useTheme, isLightTheme as checkLightTheme } from '../contexts/ThemeContext';
-import { getThemeColors } from '../styles/colors';
+import React, { useState } from 'react';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 import DeleteConfirmModal from './DeleteConfirmModal';
 
 interface Project {
@@ -27,9 +26,7 @@ const AllProjectsPage: React.FC<AllProjectsPageProps> = ({
   onShowDeleteSuccess,
   onDeleteProject,
 }) => {
-  const { themeStyle } = useTheme();
-  const isLightTheme = checkLightTheme(themeStyle);
-  const colors = useMemo(() => getThemeColors(isLightTheme), [isLightTheme]);
+  const { colors } = useThemedStyles();
 
   const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
   const [deleteConfirmProject, setDeleteConfirmProject] = useState<Project | null>(null);
@@ -291,4 +288,4 @@ const AllProjectsPage: React.FC<AllProjectsPageProps> = ({
   );
 };
 
-export default AllProjectsPage;
+export default React.memo(AllProjectsPage);

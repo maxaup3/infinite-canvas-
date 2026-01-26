@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useTheme, getThemeStyles, isLightTheme as checkLightTheme } from '../contexts/ThemeContext';
-import { getThemeColors } from '../styles/colors';
+import React, { useState, useRef, useEffect } from 'react';
+import { useTheme } from '../contexts/ThemeContext';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 import BottomDialog from './BottomDialog';
 import AllProjectsPage from './AllProjectsPage';
 import DeleteConfirmModal from './DeleteConfirmModal';
@@ -44,8 +44,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
   isTransitioning = false,
   gridTransitionVersion = 0,
 }) => {
-  const { themeMode, setThemeMode } = useTheme();
-  const theme = getThemeStyles(themeMode);
+  const { setThemeMode } = useTheme();
   const [showScrollContent, setShowScrollContent] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDialogExpanded, setIsDialogExpanded] = useState(true);
@@ -165,11 +164,8 @@ const LandingPage: React.FC<LandingPageProps> = ({
   // 对话框展开状态（移到顶层避免组件重新挂载）
   const [dialogExpanded, setDialogExpanded] = useState(true);
 
-  // 判断是否为浅色主题
-  const isLightTheme = checkLightTheme(themeMode);
-
-  // 获取当前主题颜色
-  const colors = useMemo(() => getThemeColors(isLightTheme), [isLightTheme]);
+  // 获取统一的主题样式
+  const { isLight: isLightTheme, colors, theme } = useThemedStyles();
 
   // 鼠标位置追踪 - 已禁用，改用静态背景
   // const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -2382,4 +2378,4 @@ const LandingPage: React.FC<LandingPageProps> = ({
   );
 };
 
-export default LandingPage;
+export default React.memo(LandingPage);

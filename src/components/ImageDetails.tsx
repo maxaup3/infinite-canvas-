@@ -1,6 +1,6 @@
 import React from 'react';
 import { ImageLayer } from '../types';
-import { useTheme, getThemeStyles, isLightTheme as checkLightTheme } from '../contexts/ThemeContext';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 import { Colors } from '../styles/constants';
 
 interface ImageDetailsProps {
@@ -10,9 +10,7 @@ interface ImageDetailsProps {
 }
 
 const ImageDetails: React.FC<ImageDetailsProps> = ({ layer, onClose, onLayerUpdate: _onLayerUpdate }) => {
-  const { themeMode } = useTheme();
-  const theme = getThemeStyles(themeMode);
-  const isLight = checkLightTheme(themeMode);
+  const { isLight, theme } = useThemedStyles();
 
   // 使用与 LayerPanel 相同的主题背景
   const textPrimary = Colors.text.primary;
@@ -193,4 +191,4 @@ const ImageDetails: React.FC<ImageDetailsProps> = ({ layer, onClose, onLayerUpda
   );
 };
 
-export default ImageDetails;
+export default React.memo(ImageDetails);

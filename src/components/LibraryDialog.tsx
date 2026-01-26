@@ -656,4 +656,4 @@ const LibraryDialog: React.FC<LibraryDialogProps> = ({
   );
 };
 
-export default LibraryDialog;
+export default React.memo(LibraryDialog);

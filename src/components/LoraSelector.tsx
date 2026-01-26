@@ -613,5 +613,5 @@ const LoraSelector: React.FC<LoraSelectorProps> = ({
   );
 };
 
-export default LoraSelector;
+export default React.memo(LoraSelector);
 

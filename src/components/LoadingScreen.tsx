@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useTheme, isLightTheme as checkLightTheme } from '../contexts/ThemeContext';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 interface LoadingScreenProps {
   onComplete?: () => void;
@@ -14,10 +14,8 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
   duration = 1500,
   fadeOutDuration = 500, // 默认 500ms 渐出
 }) => {
-  const { themeMode } = useTheme();
+  const { isLight: isLightTheme } = useThemedStyles();
   const [isFadingOut, setIsFadingOut] = useState(false);
-
-  const isLightTheme = checkLightTheme(themeMode);
 
   useEffect(() => {
     // 在总时长减去渐出时长后开始渐出
@@ -148,4 +146,4 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
   );
 };
 
-export default LoadingScreen;
+export default React.memo(LoadingScreen);
