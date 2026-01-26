@@ -10,8 +10,8 @@ import {
   useEditor,
   track,
   TLShapeId,
-} from '@tldraw/tldraw'
-import '@tldraw/tldraw/tldraw.css'
+} from 'tldraw'
+import 'tldraw/tldraw.css'
 import { AIImageShapeUtil, videoElementsMap } from './components/tldraw-poc/AIImageShape'
 import VideoControls from './components/tldraw-poc/VideoControls'
 import TopBar from './components/TopBar'

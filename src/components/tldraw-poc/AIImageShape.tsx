@@ -9,7 +9,7 @@ import {
   HTMLContainer,
   Rectangle2d,
   Geometry2d,
-} from '@tldraw/tldraw'
+} from 'tldraw'
 
 // 定义 AI 图片形状的属性
 export type AIImageShape = TLBaseShape<
