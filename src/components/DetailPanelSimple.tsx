@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { ImageLayer } from '../types';
-import { useTheme, getThemeStyles, isLightTheme } from '../contexts/ThemeContext';
 import { Colors, Typography, BorderRadius, Spacing } from '../styles/constants';
 import iconCopy from '../assets/icons/copy.svg?url';
 import iconClose from '../assets/icons/close.svg?url';
 import { getResolutionLevel } from '../utils/imageUtils';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 /**
  * 方案3: Simplified Panel 样式
@@ -19,8 +19,7 @@ interface DetailPanelSimpleProps {
 }
 
 const DetailPanelSimple: React.FC<DetailPanelSimpleProps> = ({ layer, onClose, onLayerUpdate }) => {
-  const { themeStyle } = useTheme();
-  const isLight = isLightTheme(themeStyle);
+  const { isLight, colors, iconFilter } = useThemedStyles();
   const [copied, setCopied] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingName, setEditingName] = useState(layer.name || '');
@@ -58,11 +57,11 @@ const DetailPanelSimple: React.FC<DetailPanelSimpleProps> = ({ layer, onClose, o
     }
   };
 
-  const bgColor = isLight ? '#F5F5F5' : '#2A2A2A';
-  const textPrimary = isLight ? 'rgba(0, 0, 0, 0.85)' : 'rgba(255, 255, 255, 0.9)';
-  const textSecondary = isLight ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.45)';
-  const borderColor = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)';
-  const hoverBg = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.08)';
+  const bgColor = colors.background.secondary;
+  const textPrimary = colors.text.primary;
+  const textSecondary = colors.text.tertiary;
+  const borderColor = colors.border.primary;
+  const hoverBg = colors.interactive.hover;
 
   return (
     <div
@@ -203,7 +202,7 @@ const DetailPanelSimple: React.FC<DetailPanelSimpleProps> = ({ layer, onClose, o
                   style={{
                     width: 11,
                     height: 11,
-                    filter: isLight ? 'brightness(0.3)' : 'brightness(0) invert(1)',
+                    filter: iconFilter,
                     opacity: 0.6,
                   }}
                 />

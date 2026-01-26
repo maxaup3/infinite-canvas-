@@ -9,7 +9,7 @@ import unlockIcon from '../assets/icons/unlock.svg?url';
 import hideIcon from '../assets/icons/hide.svg?url';
 import eyesIcon from '../assets/icons/eyes.svg?url';
 import LibraryDialog from './LibraryDialog';
-import { useTheme, getThemeStyles, isLightTheme as checkLightTheme } from '../contexts/ThemeContext';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 interface LayerPanelProps {
   layers: ImageLayer[];
@@ -36,9 +36,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   onLayerAdd,
   onLayerReorder,
 }) => {
-  const { themeMode } = useTheme();
-  const theme = getThemeStyles(themeMode);
-  const isLight = checkLightTheme(themeMode);
+  const { isLight, theme, iconFilter } = useThemedStyles();
 
   const [hoveredLayerId, setHoveredLayerId] = useState<string | null>(null);
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
@@ -88,7 +86,7 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
   const iconStyle: React.CSSProperties = {
     width: 20,
     height: 20,
-    filter: isLight ? 'brightness(0.2)' : 'brightness(0) invert(1)',
+    filter: iconFilter,
     opacity: 0.85,
   };
 

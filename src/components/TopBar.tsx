@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Colors, Typography, BorderRadius, Spacing } from '../styles/constants';
-import { useTheme, getThemeStyles, isLightTheme as checkLightTheme } from '../contexts/ThemeContext';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 import sLogo from '../assets/icons/s_logo.svg?url';
 
 interface TopBarProps {
@@ -39,11 +39,7 @@ const TopBar: React.FC<TopBarProps> = ({
   onDuplicate,
   onShowAllImages,
 }) => {
-  const { themeMode } = useTheme();
-  const theme = getThemeStyles(themeMode);
-
-  // 判断是否为浅色主题
-  const isLightTheme = checkLightTheme(themeMode);
+  const { isLight: isLightTheme, theme, colors } = useThemedStyles();
 
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState(projectName);

@@ -1,21 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ImageLayer } from '../types';
 import { BorderRadius } from '../styles/constants';
-import { useTheme, getThemeStyles, isLightTheme as checkLightTheme } from '../contexts/ThemeContext';
-
-const isLightTheme = checkLightTheme;
+import { useThemedStyles } from '../hooks/useThemedStyles';
 import { getResolutionLevel } from '../utils/imageUtils';
-
-// 图标路径
-const iconRemix = '/assets/icons/remix.svg';
-const iconEdit = '/assets/icons/edit.svg';
-const iconDownload = '/assets/icons/download.svg';
-const iconKeyframes = '/assets/icons/start_end_frames.svg';
-const iconImage = '/assets/icons/image.svg';
-const iconMerge = '/assets/icons/copy.svg';
-const iconFillDialog = '/assets/icons/image.svg'; // 加入工作区
-const iconCopy = '/assets/icons/copy.svg';
-const iconCredits = '/assets/icons/credits.svg';
+import { ICONS } from '../constants/icons';
 
 interface ImageToolbarProps {
   selectedLayers: ImageLayer[];
@@ -49,19 +37,7 @@ const ImageToolbar: React.FC<ImageToolbarProps> = ({
   onMergeLayers,
   imageBottomY,
 }) => {
-  const { themeMode } = useTheme();
-  const theme = getThemeStyles(themeMode);
-  const isLight = isLightTheme(themeMode);
-
-  // 辅助函数：根据主题获取图标 filter
-  const getIconFilter = () => {
-    if (isLight) {
-      // 浅色主题：保持深色图标(不反转)
-      return 'brightness(0.3)';
-    }
-    // 深色主题：反转为白色
-    return 'brightness(0) invert(1)';
-  };
+  const { isLight, theme, iconFilter } = useThemedStyles();
 
   const [showDetailsTooltip, setShowDetailsTooltip] = useState(false);
   const detailsTooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -156,34 +132,34 @@ const ImageToolbar: React.FC<ImageToolbarProps> = ({
   if (totalCount === 1 && imageCount === 1) {
     // 图片*1
     buttons = [
-      { label: '加入工作区', icon: iconFillDialog, title: '加入工作区 (Cmd+左键快速填入)', onClick: onFillToDialog, group: 1 },
-      { label: 'Remix', icon: iconRemix, title: '回填参数到对话框', onClick: onRemix, group: 1 },
-      { label: 'Edit', icon: iconEdit, title: '快速编辑', onClick: handleEditClick, group: 1 },
-      { label: '', icon: iconDownload, title: '下载', onClick: onDownload, iconOnly: true, group: 2 },
+      { label: '加入工作区', icon: ICONS.image, title: '加入工作区 (Cmd+左键快速填入)', onClick: onFillToDialog, group: 1 },
+      { label: 'Remix', icon: ICONS.remix, title: '回填参数到对话框', onClick: onRemix, group: 1 },
+      { label: 'Edit', icon: ICONS.edit, title: '快速编辑', onClick: handleEditClick, group: 1 },
+      { label: '', icon: ICONS.download, title: '下载', onClick: onDownload, iconOnly: true, group: 2 },
     ];
   } else if (totalCount === 1 && videoCount === 1) {
     // 视频*1
     buttons = [
-      { label: 'Remix', icon: iconRemix, title: '回填参数到对话框', onClick: onRemix, group: 1 },
-      { label: '', icon: iconDownload, title: '下载', onClick: onDownload, iconOnly: true, group: 2 },
+      { label: 'Remix', icon: ICONS.remix, title: '回填参数到对话框', onClick: onRemix, group: 1 },
+      { label: '', icon: ICONS.download, title: '下载', onClick: onDownload, iconOnly: true, group: 2 },
     ];
   } else if (imageCount >= 2 && videoCount === 0) {
     // 图片*2或更多
     buttons = [
-      { label: '填入首尾帧', icon: iconKeyframes, title: '填入首尾帧', onClick: onFillToKeyframes, group: 1 },
-      { label: '填入图像生成', icon: iconImage, title: '填入图像生成', onClick: onFillToImageGen, group: 1 },
-      { label: '合并图层', icon: iconMerge, title: '合并图层', onClick: onMergeLayers, group: 1 },
-      { label: '', icon: iconDownload, title: '下载', onClick: onBatchDownload, iconOnly: true, group: 2 },
+      { label: '填入首尾帧', icon: ICONS.keyframes, title: '填入首尾帧', onClick: onFillToKeyframes, group: 1 },
+      { label: '填入图像生成', icon: ICONS.image, title: '填入图像生成', onClick: onFillToImageGen, group: 1 },
+      { label: '合并图层', icon: ICONS.copy, title: '合并图层', onClick: onMergeLayers, group: 1 },
+      { label: '', icon: ICONS.download, title: '下载', onClick: onBatchDownload, iconOnly: true, group: 2 },
     ];
   } else if (videoCount > 0 && imageCount > 0) {
     // 视频+图片混合
     buttons = [
-      { label: '', icon: iconDownload, title: '下载', onClick: onBatchDownload, iconOnly: true, group: 1 },
+      { label: '', icon: ICONS.download, title: '下载', onClick: onBatchDownload, iconOnly: true, group: 1 },
     ];
   } else if (videoCount > 1) {
     // 视频*超过1
     buttons = [
-      { label: '', icon: iconDownload, title: '下载', onClick: onBatchDownload, iconOnly: true, group: 1 },
+      { label: '', icon: ICONS.download, title: '下载', onClick: onBatchDownload, iconOnly: true, group: 1 },
     ];
   }
 
@@ -281,7 +257,7 @@ const ImageToolbar: React.FC<ImageToolbarProps> = ({
                 height={18}
                 style={{
                   flexShrink: 0,
-                  filter: getIconFilter(),
+                  filter: iconFilter,
                   opacity: 0.9
                 }}
               />
@@ -415,12 +391,12 @@ const ImageToolbar: React.FC<ImageToolbarProps> = ({
                   title="复制提示词"
                 >
                   <img
-                    src={iconCopy}
+                    src={ICONS.copy}
                     alt="复制"
                     style={{
                       width: 14,
                       height: 14,
-                      filter: isLight ? 'brightness(0.3)' : 'brightness(0) invert(1)',
+                      filter: iconFilter,
                       opacity: 0.65,
                     }}
                   />
@@ -615,7 +591,7 @@ const ImageToolbar: React.FC<ImageToolbarProps> = ({
               >
                 {/* credit 图标 */}
                 <img
-                  src={iconCredits}
+                  src={ICONS.credits}
                   alt="credits"
                   width={14}
                   height={14}
@@ -623,7 +599,7 @@ const ImageToolbar: React.FC<ImageToolbarProps> = ({
                     flexShrink: 0,
                     opacity: quickEditPrompt.trim() ? 1 : 0.5,
                     transition: 'opacity 0.3s ease-in-out',
-                    filter: getIconFilter(),
+                    filter: iconFilter,
                   }}
                 />
                 {/* 数字 */}
