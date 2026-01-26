@@ -1425,6 +1425,7 @@ function TldrawAppContent() {
     console.log('🎯 handleStartGeneration called with config:', config)
     setPendingGenerationConfig(config)
     pendingGenerationConfigRef.current = config  // 同时保存到ref
+    setHasCompletedOnboarding(true)  // 从首页带任务进入时，跳过新手引导
     setIsTransitioning(true)
 
     // 网格脉冲过渡时长：700ms
