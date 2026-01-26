@@ -135,8 +135,8 @@ export class AIImageShapeUtil extends ShapeUtil<any> {
               }}
               loop
               muted
-              autoPlay
               playsInline
+              // 默认不自动播放，由选中状态控制
             />
           ) : (
             <img

@@ -34,18 +34,22 @@ import { ThemeProvider, useTheme, getThemeStyles, isLightTheme } from './context
 // 自定义形状
 const customShapeUtils = [AIImageShapeUtil]
 
-// 自定义网格组件 - 匹配原始 Canvas.tsx 设计
+// 自定义网格组件 - 使用主题配色
 function CustomGrid({ x, y, z }: { x: number; y: number; z: number; size: number }) {
   const { themeStyle } = useTheme()
-  const lightTheme = isLightTheme(themeStyle)
+  const theme = getThemeStyles(themeStyle)
 
   const smallGridSize = 20
   const largeGridSize = 100
 
-  // 小网格颜色（蓝紫色调 - 更淡）
-  const smallGridColor = lightTheme ? 'rgba(102, 126, 234, 0.04)' : 'rgba(102, 126, 234, 0.06)'
-  // 大网格颜色（只比小网格亮一点点）
-  const largeGridColor = lightTheme ? 'rgba(102, 126, 234, 0.08)' : 'rgba(102, 126, 234, 0.10)'
+  // 从主题获取网格颜色，默认使用蓝紫色调
+  const baseGridColor = theme.gridColor || 'rgba(102, 126, 234, 0.06)'
+  // 大网格颜色稍微亮一些
+  const smallGridColor = baseGridColor
+  const largeGridColor = baseGridColor.replace(/[\d.]+\)$/, (match) => {
+    const opacity = parseFloat(match)
+    return `${Math.min(opacity * 1.5, 0.2)})`
+  })
 
   const viewWidth = window.innerWidth
   const viewHeight = window.innerHeight
@@ -143,15 +147,22 @@ function shapeToLayer(shape: any): ImageLayer {
     generationConfig = undefined
   }
 
+  // 构建名称：prompt + 批次信息 (1/4)
+  let name = shape.props.prompt || 'AI Image'
+  if (generationConfig?.batchTotal && generationConfig.batchTotal > 1) {
+    const batchIndex = (generationConfig.batchIndex || 0) + 1
+    name = `${name} (${batchIndex}/${generationConfig.batchTotal})`
+  }
+
   return {
     id: shape.id,
-    name: shape.props.prompt || 'AI Image',
+    name,
     url: shape.props.url,
     x: shape.x + shape.props.w / 2,
     y: shape.y + shape.props.h / 2,
     width: shape.props.w,
     height: shape.props.h,
-    visible: shape.opacity === 1,
+    visible: shape.opacity !== 0, // 只有 opacity 为 0 才表示隐藏
     locked: shape.isLocked || false,
     selected: false,
     type: shape.props.isVideo ? 'video' : 'image',
@@ -176,12 +187,18 @@ const CanvasContent = track(function CanvasContent({
   // 监听形状变化
   useEffect(() => {
     const unsubscribe = editor.store.listen(() => {
-      const shapes = editor.getCurrentPageShapes()
-      const aiShapes = shapes.filter((s: any) => s.type === 'ai-image')
-      // 按 Z 轴倒序排列（最上层的在数组前面，用于图层面板显示）
-      const sortedAiShapes = [...aiShapes].reverse()
-      const layers = sortedAiShapes.map(shapeToLayer)
-      console.log('📊 Layers updated:', layers.map(l => l.id.slice(-6)))
+      // 使用 getSortedChildIdsForParent 获取按 Z 轴排序的 shape IDs
+      const currentPageId = editor.getCurrentPageId()
+      const sortedIds = editor.getSortedChildIdsForParent(currentPageId)
+
+      // 根据排序后的 ID 获取 ai-image shapes
+      const aiShapes = sortedIds
+        .map(id => editor.getShape(id))
+        .filter((s): s is NonNullable<typeof s> => s !== undefined && (s as any).type === 'ai-image')
+
+      // 倒序排列（最上层的在数组前面，用于图层面板显示）
+      const reversedAiShapes = [...aiShapes].reverse()
+      const layers = reversedAiShapes.map(shapeToLayer)
       onLayersChange(layers)
     }, { source: 'all', scope: 'document' })
 
@@ -192,6 +209,23 @@ const CanvasContent = track(function CanvasContent({
   useEffect(() => {
     const unsubscribe = editor.store.listen(() => {
       const selectedIds = editor.getSelectedShapeIds()
+
+      // 过滤掉隐藏的图层（opacity === 0）
+      const visibleSelectedIds = selectedIds.filter(id => {
+        const shape = editor.getShape(id)
+        return shape && shape.opacity !== 0
+      })
+
+      // 如果有隐藏的图层被选中，自动取消它们的选中状态
+      if (visibleSelectedIds.length !== selectedIds.length) {
+        if (visibleSelectedIds.length > 0) {
+          editor.select(...visibleSelectedIds)
+        } else {
+          editor.selectNone()
+        }
+        return // 选择变化会再次触发这个监听器
+      }
+
       onSelectionChange(selectedIds as string[])
     }, { source: 'all', scope: 'session' })
 
@@ -258,34 +292,39 @@ function TldrawAppContent() {
   const [selectedLayerScreenPos, setSelectedLayerScreenPos] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
   const lastBoundsRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null)
 
-  // 更新选中图层的屏幕位置（检测变换状态）
-  useEffect(() => {
-    if (!editor || !selectedLayer) {
+  // 计算选中图层的屏幕位置并检测变换状态
+  const updateSelectedLayerScreenPos = useCallback((detectTransform: boolean = false) => {
+    if (!editor || selectedLayerIds.length === 0) {
       setSelectedLayerScreenPos(null)
-      lastBoundsRef.current = null
-      setIsLayerTransforming(false)
       return
     }
 
-    const shape = editor.getShape(selectedLayer.id as TLShapeId)
-    if (!shape) {
-      setSelectedLayerScreenPos(null)
-      lastBoundsRef.current = null
-      setIsLayerTransforming(false)
-      return
+    // 计算所有选中图层的边界框
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    let hasValidBounds = false
+
+    for (const layerId of selectedLayerIds) {
+      const shape = editor.getShape(layerId as TLShapeId)
+      if (!shape) continue
+
+      const bounds = editor.getShapePageBounds(shape)
+      if (!bounds) continue
+
+      hasValidBounds = true
+      minX = Math.min(minX, bounds.x)
+      minY = Math.min(minY, bounds.y)
+      maxX = Math.max(maxX, bounds.x + bounds.width)
+      maxY = Math.max(maxY, bounds.y + bounds.height)
     }
 
-    const bounds = editor.getShapePageBounds(shape)
-    if (!bounds) {
+    if (!hasValidBounds) {
       setSelectedLayerScreenPos(null)
-      lastBoundsRef.current = null
-      setIsLayerTransforming(false)
       return
     }
 
     // 转换为屏幕坐标
-    const screenBounds = editor.pageToScreen({ x: bounds.x, y: bounds.y })
-    const screenBoundsEnd = editor.pageToScreen({ x: bounds.x + bounds.width, y: bounds.y + bounds.height })
+    const screenBounds = editor.pageToScreen({ x: minX, y: minY })
+    const screenBoundsEnd = editor.pageToScreen({ x: maxX, y: maxY })
 
     const newBounds = {
       x: screenBounds.x,
@@ -294,38 +333,69 @@ function TldrawAppContent() {
       height: screenBoundsEnd.y - screenBounds.y,
     }
 
-    // 检测位置或尺寸是否变化
-    const lastBounds = lastBoundsRef.current
-    if (lastBounds) {
-      const isMoving = Math.abs(newBounds.x - lastBounds.x) > 1 || Math.abs(newBounds.y - lastBounds.y) > 1
-      const isResizing = Math.abs(newBounds.width - lastBounds.width) > 1 || Math.abs(newBounds.height - lastBounds.height) > 1
+    setSelectedLayerScreenPos(newBounds)
 
-      if (isMoving || isResizing) {
-        // 图层正在变换，隐藏工具栏
-        setIsLayerTransforming(true)
+    // 检测变换状态（仅在 store 变化时检测）
+    if (detectTransform) {
+      const lastBounds = lastBoundsRef.current
+      if (lastBounds) {
+        const isMoving = Math.abs(newBounds.x - lastBounds.x) > 1 || Math.abs(newBounds.y - lastBounds.y) > 1
+        const isResizing = Math.abs(newBounds.width - lastBounds.width) > 1 || Math.abs(newBounds.height - lastBounds.height) > 1
 
-        // 清除之前的定时器
-        if (transformTimeoutRef.current) {
-          clearTimeout(transformTimeoutRef.current)
+        if (isMoving || isResizing) {
+          // 图层正在变换，隐藏工具栏
+          setIsLayerTransforming(true)
+
+          // 清除之前的定时器
+          if (transformTimeoutRef.current) {
+            clearTimeout(transformTimeoutRef.current)
+          }
+
+          // 300ms 后如果没有新的变化，则认为变换结束
+          transformTimeoutRef.current = setTimeout(() => {
+            setIsLayerTransforming(false)
+          }, 300)
         }
-
-        // 500ms 后如果没有新的变化，则认为变换结束
-        transformTimeoutRef.current = setTimeout(() => {
-          setIsLayerTransforming(false)
-          setSelectedLayerScreenPos(newBounds)
-        }, 500)
-      } else {
-        // 位置和尺寸稳定，保持当前状态并更新位置
-        setSelectedLayerScreenPos(newBounds)
       }
-    } else {
-      // 首次选中，立即显示工具栏
+      lastBoundsRef.current = newBounds
+    }
+  }, [editor, selectedLayerIds])
+
+  // 监听 store 变化，实时更新 toolbar 位置
+  useEffect(() => {
+    if (!editor || selectedLayerIds.length === 0) {
+      setSelectedLayerScreenPos(null)
+      lastBoundsRef.current = null
       setIsLayerTransforming(false)
-      setSelectedLayerScreenPos(newBounds)
+      if (transformTimeoutRef.current) {
+        clearTimeout(transformTimeoutRef.current)
+        transformTimeoutRef.current = null
+      }
+      return
     }
 
-    lastBoundsRef.current = newBounds
-  }, [editor, selectedLayer, camera, zoom])
+    // 初始计算位置（首次选中，立即显示工具栏）
+    updateSelectedLayerScreenPos(false)
+    setIsLayerTransforming(false)
+
+    // 监听 store 变化（包括拖动、缩放等）
+    const unsubscribe = editor.store.listen(() => {
+      updateSelectedLayerScreenPos(true) // 检测变换状态
+    }, { source: 'all', scope: 'document' })
+
+    return () => {
+      unsubscribe()
+      if (transformTimeoutRef.current) {
+        clearTimeout(transformTimeoutRef.current)
+        transformTimeoutRef.current = null
+      }
+    }
+  }, [editor, selectedLayerIds, updateSelectedLayerScreenPos])
+
+  // 相机变化时也需要更新位置
+  useEffect(() => {
+    updateSelectedLayerScreenPos()
+  }, [camera, zoom, updateSelectedLayerScreenPos])
 
   // Toast 管理
   const addToast = useCallback((message: string, type: ToastItem['type'] = 'info') => {
@@ -339,6 +409,25 @@ function TldrawAppContent() {
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
+
+  // 视频播放控制：选中时播放，取消选中时暂停
+  useEffect(() => {
+    // 暂停所有未选中的视频
+    videoElementsMap.forEach((video, shapeId) => {
+      if (!selectedLayerIds.includes(shapeId)) {
+        video.pause()
+        video.currentTime = 0
+      }
+    })
+
+    // 播放选中的视频
+    if (selectedLayerIds.length === 1 && selectedLayer?.type === 'video') {
+      const video = videoElementsMap.get(selectedLayer.id)
+      if (video && video.paused) {
+        video.play().catch(err => console.error('Video play error:', err))
+      }
+    }
+  }, [selectedLayerIds, selectedLayer])
 
   // 键盘快捷键
   useEffect(() => {
@@ -591,100 +680,127 @@ function TldrawAppContent() {
 
         const newTasks: GenerationTask[] = []
         const batchId = `batch-${Date.now()}`  // 批次ID，用于标识同一批生成的图片
+        const taskId = `task-${Date.now()}`
 
-        // 根据数量创建多个 shape
-        for (let i = 0; i < count; i++) {
-          const taskId = `task-${Date.now()}-${i}`
-          const placeholderShapeId = createShapeId()
+        // 只创建第一张图的占位符 shape
+        const firstShapeId = createShapeId()
+        const firstShapeX = startX
+        const firstShapeY = startY
 
-          // 计算每张图的位置
-          const col = is2x2 ? (i % 2) : i
-          const row = is2x2 ? Math.floor(i / 2) : 0
-          const shapeX = startX + col * (imageSize.width + gap)
-          const shapeY = startY + row * (imageSize.height + gap)
+        const firstConfigWithBatch = {
+          ...config,
+          batchId,
+          batchIndex: 0,
+          batchTotal: count,
+        }
 
-          // 扩展 config 添加批次信息
-          const configWithBatch = {
-            ...config,
-            batchId,
-            batchIndex: i,
-            batchTotal: count,
-          }
+        ed.createShape({
+          id: firstShapeId,
+          type: 'ai-image' as any,
+          x: firstShapeX,
+          y: firstShapeY,
+          props: {
+            w: imageSize.width,
+            h: imageSize.height,
+            url: '',
+            prompt: config.prompt,
+            isVideo: config.mode === 'video',
+            generationConfig: JSON.stringify(firstConfigWithBatch),
+          },
+        })
 
-          // 创建占位符shape
-          ed.createShape({
-            id: placeholderShapeId,
-            type: 'ai-image' as any,
-            x: shapeX,
-            y: shapeY,
-            props: {
-              w: imageSize.width,
-              h: imageSize.height,
-              url: '',
-              prompt: config.prompt,
-              isVideo: config.mode === 'video',
-              generationConfig: JSON.stringify(configWithBatch),
-            },
-          })
+        ed.select(firstShapeId)
 
-          // 只为第一张图创建遮罩任务
-          if (i === 0) {
-            const newTask: GenerationTask = {
-              id: taskId,
-              shapeId: placeholderShapeId as string,
-              status: 'generating',
-              progress: 0,
-              config,
-              position: { x: shapeX + imageSize.width / 2, y: shapeY + imageSize.height / 2 },
-              width: imageSize.width,
-              height: imageSize.height,
-              createdAt: new Date().toISOString(),
-              startedAt: Date.now(),
-              estimatedDuration: 30,
-            }
-            newTasks.push(newTask)
-          }
+        const newTask: GenerationTask = {
+          id: taskId,
+          shapeId: firstShapeId as string,
+          status: 'generating',
+          progress: 0,
+          config,
+          position: { x: firstShapeX + imageSize.width / 2, y: firstShapeY + imageSize.height / 2 },
+          width: imageSize.width,
+          height: imageSize.height,
+          createdAt: new Date().toISOString(),
+          startedAt: Date.now(),
+          estimatedDuration: 30,
+        }
+        newTasks.push(newTask)
 
-          // 为每个图片创建独立的进度更新（但只有第一张显示遮罩）
-          let progress = 0
-          const interval = setInterval(() => {
-            progress += 5
-            if (i === 0) {
-              setGenerationTasks(prev =>
-                prev.map(t => t.id === taskId ? { ...t, progress } : t)
-              )
-            }
+        let progress = 0
+        const interval = setInterval(() => {
+          progress += 5
+          setGenerationTasks(prev =>
+            prev.map(t => t.id === taskId ? { ...t, progress } : t)
+          )
 
-            if (progress >= 100) {
-              clearInterval(interval)
+          if (progress >= 100) {
+            clearInterval(interval)
 
-              // 更新图片/视频 URL
-              const isVideoMode = config.mode === 'video'
+            const isVideoMode = config.mode === 'video'
+            const allShapeIds: string[] = [firstShapeId as string]
+
+            // 更新第一张图的 URL
+            const firstMediaUrl = isVideoMode
+              ? 'https://www.w3schools.com/html/mov_bbb.mp4'
+              : `https://picsum.photos/seed/${Date.now()}/${imageSize.width * 2}/${imageSize.height * 2}`
+
+            ed.updateShape({
+              id: firstShapeId as any,
+              type: 'ai-image' as any,
+              props: {
+                url: firstMediaUrl,
+                model: config.model,
+                generatedAt: Date.now(),
+              },
+            })
+
+            // 生成完成后创建其他图片
+            for (let i = 1; i < count; i++) {
+              const newShapeId = createShapeId()
+              const col = is2x2 ? (i % 2) : i
+              const row = is2x2 ? Math.floor(i / 2) : 0
+              const shapeX = startX + col * (imageSize.width + gap)
+              const shapeY = startY + row * (imageSize.height + gap)
+
+              const configWithBatch = {
+                ...config,
+                batchId,
+                batchIndex: i,
+                batchTotal: count,
+              }
+
               const mediaUrl = isVideoMode
-                ? 'https://www.w3schools.com/html/mov_bbb.mp4'  // 示例视频
+                ? 'https://www.w3schools.com/html/mov_bbb.mp4'
                 : `https://picsum.photos/seed/${Date.now() + i}/${imageSize.width * 2}/${imageSize.height * 2}`
 
-              ed.updateShape({
-                id: placeholderShapeId as any,
+              ed.createShape({
+                id: newShapeId,
                 type: 'ai-image' as any,
+                x: shapeX,
+                y: shapeY,
                 props: {
+                  w: imageSize.width,
+                  h: imageSize.height,
                   url: mediaUrl,
+                  prompt: config.prompt,
                   model: config.model,
                   generatedAt: Date.now(),
+                  isVideo: isVideoMode,
+                  generationConfig: JSON.stringify(configWithBatch),
                 },
               })
 
-              // 只有第一张完成时移除遮罩任务
-              if (i === 0) {
-                setGenerationTasks(prev => prev.filter(t => t.id !== taskId))
-              }
+              allShapeIds.push(newShapeId as string)
             }
-          }, 150)
-        }
+
+            setGenerationTasks(prev => prev.filter(t => t.id !== taskId))
+            ed.select(...allShapeIds as TLShapeId[])
+          }
+        }, 150)
 
         setGenerationTasks(prev => [...prev, ...newTasks])
         setIsBottomDialogExpanded(true)
-        console.log(`📦 Created ${count} generation tasks from pending config`)
+        console.log(`📦 Created generation task for ${count} images from pending config`)
       }, 200)
     }
 
@@ -768,6 +884,12 @@ function TldrawAppContent() {
   const handleLayerSelect = useCallback((layerId: string | null, isMultiSelect?: boolean) => {
     if (!editor) return
     if (layerId) {
+      // 检查图层是否隐藏，隐藏的图层不允许选中
+      const shape = editor.getShape(layerId as TLShapeId)
+      if (shape && shape.opacity === 0) {
+        // 隐藏的图层不能被选中
+        return
+      }
       if (isMultiSelect) {
         const currentIds = editor.getSelectedShapeIds()
         if (currentIds.includes(layerId as TLShapeId)) {
@@ -790,7 +912,20 @@ function TldrawAppContent() {
     if (shape) {
       const updateObj: any = { id: layerId as TLShapeId, type: 'ai-image' }
       if (updates.visible !== undefined) {
-        updateObj.opacity = updates.visible ? 1 : 0.3
+        // 完全隐藏：opacity 设为 0
+        updateObj.opacity = updates.visible ? 1 : 0
+        // 如果隐藏图层且当前被选中，则取消选中
+        if (!updates.visible) {
+          const selectedIds = editor.getSelectedShapeIds()
+          if (selectedIds.includes(layerId as TLShapeId)) {
+            const newSelectedIds = selectedIds.filter(id => id !== layerId)
+            if (newSelectedIds.length > 0) {
+              editor.select(...newSelectedIds)
+            } else {
+              editor.selectNone()
+            }
+          }
+        }
       }
       if (updates.locked !== undefined) {
         updateObj.isLocked = updates.locked
@@ -837,29 +972,30 @@ function TldrawAppContent() {
     console.log('🔄 handleLayerReorder called:', { fromIndex, toIndex, layersCount: layers.length })
 
     // layers 数组是从上到下排列的（index 0 是最上层，Z轴最高）
-    // 在 tldraw 中，shapes 数组的顺序就是 z-index 顺序（后面的在上面）
-    // 我们的 layers 是 reversed 的，所以 layers[0] 是实际 shapes 数组的最后一个（最上层）
+    // 使用 getSortedChildIdsForParent 获取真正按 Z 轴排序的 shapes
+    const currentPageId = editor.getCurrentPageId()
+    const sortedIds = editor.getSortedChildIdsForParent(currentPageId)
 
-    // 获取当前所有 ai-image shapes（按 tldraw 的 z-index 顺序，即后面的在上面）
-    const shapes = editor.getCurrentPageShapes()
-    const aiShapes = shapes.filter((s: any) => s.type === 'ai-image')
+    // 只获取 ai-image shapes
+    const aiShapeIds = sortedIds.filter(id => {
+      const shape = editor.getShape(id)
+      return shape && (shape as any).type === 'ai-image'
+    })
 
-    // aiShapes 是 tldraw 的原始顺序（index 越大，z-index 越高）
+    // aiShapeIds 是 tldraw 的原始顺序（index 越大，z-index 越高）
     // layers 是 reversed 的（index 越小，z-index 越高）
-    // 所以 layers[i] 对应 aiShapes[aiShapes.length - 1 - i]
+    // 所以 layers[i] 对应 aiShapeIds[aiShapeIds.length - 1 - i]
 
-    const fromTldrawIndex = aiShapes.length - 1 - fromIndex
-    const toTldrawIndex = aiShapes.length - 1 - toIndex
+    const fromTldrawIndex = aiShapeIds.length - 1 - fromIndex
+    const toTldrawIndex = aiShapeIds.length - 1 - toIndex
 
-    console.log('🔄 Tldraw indices:', { fromTldrawIndex, toTldrawIndex })
+    console.log('🔄 Tldraw indices:', { fromTldrawIndex, toTldrawIndex, totalShapes: aiShapeIds.length })
 
-    const shapeToMove = aiShapes[fromTldrawIndex]
-    if (!shapeToMove) {
+    const shapeIdToMove = aiShapeIds[fromTldrawIndex]
+    if (!shapeIdToMove) {
       console.log('❌ Shape to move not found')
       return
     }
-
-    const shapeId = shapeToMove.id as TLShapeId
 
     // 在面板中向上拖动 (fromIndex > toIndex) = Z轴变高 = 在 tldraw 中往后移
     // 在面板中向下拖动 (fromIndex < toIndex) = Z轴变低 = 在 tldraw 中往前移
@@ -870,7 +1006,7 @@ function TldrawAppContent() {
       const steps = fromIndex - toIndex
       console.log('⬆️ Moving up', steps, 'steps')
       for (let i = 0; i < steps; i++) {
-        editor.bringForward([shapeId])
+        editor.bringForward([shapeIdToMove as TLShapeId])
       }
     } else {
       // 向下移动（Z轴变低）
@@ -878,7 +1014,7 @@ function TldrawAppContent() {
       const steps = toIndex - fromIndex
       console.log('⬇️ Moving down', steps, 'steps')
       for (let i = 0; i < steps; i++) {
-        editor.sendBackward([shapeId])
+        editor.sendBackward([shapeIdToMove as TLShapeId])
       }
     }
 
@@ -906,8 +1042,9 @@ function TldrawAppContent() {
     const centerPage = editor.screenToPage(centerScreen)
 
     // 根据 aspectRatio 计算实际尺寸
-    // 固定宽边为 256，根据比例计算高度
-    const getImageSize = (aspectRatio: string, baseWidth: number = 256) => {
+    // 宽边固定为 320px
+    const getImageSize = (aspectRatio: string) => {
+      const baseWidth = 320
       const ratioMap: { [key: string]: [number, number] } = {
         '1:1': [1, 1],
         '16:9': [16, 9],
@@ -935,110 +1072,136 @@ function TldrawAppContent() {
     const startY = centerPage.y - totalHeight / 2
 
     const newTasks: GenerationTask[] = []
-    const shapeIds: string[] = []
     const batchId = `batch-${Date.now()}`  // 批次ID，用于标识同一批生成的图片
+    const taskId = `task-${Date.now()}`
 
-    // 根据数量创建多个 shape
-    for (let i = 0; i < count; i++) {
-      const taskId = `task-${Date.now()}-${i}`
-      const placeholderShapeId = createShapeId()
+    // 只创建第一张图的占位符 shape（其他图在生成完成后创建）
+    const firstShapeId = createShapeId()
+    const firstShapeX = startX
+    const firstShapeY = startY
 
-      // 计算每张图的位置
-      const col = is2x2 ? (i % 2) : i
-      const row = is2x2 ? Math.floor(i / 2) : 0
-      const shapeX = startX + col * (imageSize.width + gap)
-      const shapeY = startY + row * (imageSize.height + gap)
+    // 第一张图的配置
+    const firstConfigWithBatch = {
+      ...config,
+      batchId,
+      batchIndex: 0,
+      batchTotal: count,
+    }
 
-      shapeIds.push(placeholderShapeId as string)
+    // 创建第一张图的占位符 shape（遮罩会跟随这个 shape 移动）
+    ;(editor as any).createShape({
+      id: firstShapeId,
+      type: 'ai-image' as any,
+      x: firstShapeX,
+      y: firstShapeY,
+      props: {
+        w: imageSize.width,
+        h: imageSize.height,
+        url: '',  // 空 url 表示正在生成
+        prompt: config.prompt,
+        isVideo: config.mode === 'video',
+        generationConfig: JSON.stringify(firstConfigWithBatch),
+      },
+    })
 
-      // 扩展 config 添加批次信息
-      const configWithBatch = {
-        ...config,
-        batchId,
-        batchIndex: i,
-        batchTotal: count,
-      }
+    // 选中第一张图
+    editor.select(firstShapeId)
 
-      // 创建占位符shape（遮罩会跟随这个shape移动）
-      ;(editor as any).createShape({
-        id: placeholderShapeId,
-        type: 'ai-image' as any,
-        x: shapeX,
-        y: shapeY,
-        props: {
-          w: imageSize.width,
-          h: imageSize.height,
-          url: '',  // 空url表示正在生成
-          prompt: config.prompt,
-          isVideo: config.mode === 'video',
-          generationConfig: JSON.stringify(configWithBatch),
-        },
-      })
+    // 创建遮罩任务
+    const newTask: GenerationTask = {
+      id: taskId,
+      shapeId: firstShapeId as string,
+      status: 'generating',
+      progress: 0,
+      config,
+      position: { x: firstShapeX + imageSize.width / 2, y: firstShapeY + imageSize.height / 2 },
+      width: imageSize.width,
+      height: imageSize.height,
+      createdAt: new Date().toISOString(),
+      startedAt: Date.now(),
+      estimatedDuration: 30,
+    }
+    newTasks.push(newTask)
 
-      // 只为第一张图创建遮罩任务
-      if (i === 0) {
-        const newTask: GenerationTask = {
-          id: taskId,
-          shapeId: placeholderShapeId as string,
-          status: 'generating',
-          progress: 0,
-          config,
-          position: { x: shapeX + imageSize.width / 2, y: shapeY + imageSize.height / 2 },
-          width: imageSize.width,
-          height: imageSize.height,
-          createdAt: new Date().toISOString(),
-          startedAt: Date.now(),
-          estimatedDuration: 30,
-        }
-        newTasks.push(newTask)
-      }
+    // 进度更新
+    let progress = 0
+    const interval = setInterval(() => {
+      progress += 5
+      setGenerationTasks(prev =>
+        prev.map(t => t.id === taskId ? { ...t, progress } : t)
+      )
 
-      // 为每个图片创建独立的进度更新（但只有第一张显示遮罩）
-      let progress = 0
-      const interval = setInterval(() => {
-        progress += 5
-        if (i === 0) {
-          setGenerationTasks(prev =>
-            prev.map(t => t.id === taskId ? { ...t, progress } : t)
-          )
-        }
+      if (progress >= 100) {
+        clearInterval(interval)
 
-        if (progress >= 100) {
-          clearInterval(interval)
+        const isVideoMode = config.mode === 'video'
+        const allShapeIds: string[] = [firstShapeId as string]
 
-          // 更新图片/视频 URL
-          const isVideoMode = config.mode === 'video'
+        // 更新第一张图的 URL
+        const firstMediaUrl = isVideoMode
+          ? 'https://www.w3schools.com/html/mov_bbb.mp4'
+          : `https://picsum.photos/seed/${Date.now()}/${imageSize.width * 2}/${imageSize.height * 2}`
+
+        editor.updateShape({
+          id: firstShapeId as any,
+          type: 'ai-image' as any,
+          props: {
+            url: firstMediaUrl,
+            model: config.model,
+            generatedAt: Date.now(),
+          },
+        })
+
+        // 生成完成后创建其他图片（从第2张开始）
+        for (let i = 1; i < count; i++) {
+          const newShapeId = createShapeId()
+          const col = is2x2 ? (i % 2) : i
+          const row = is2x2 ? Math.floor(i / 2) : 0
+          const shapeX = startX + col * (imageSize.width + gap)
+          const shapeY = startY + row * (imageSize.height + gap)
+
+          const configWithBatch = {
+            ...config,
+            batchId,
+            batchIndex: i,
+            batchTotal: count,
+          }
+
           const mediaUrl = isVideoMode
-            ? 'https://www.w3schools.com/html/mov_bbb.mp4'  // 示例视频
+            ? 'https://www.w3schools.com/html/mov_bbb.mp4'
             : `https://picsum.photos/seed/${Date.now() + i}/${imageSize.width * 2}/${imageSize.height * 2}`
 
-          editor.updateShape({
-            id: placeholderShapeId as any,
+          ;(editor as any).createShape({
+            id: newShapeId,
             type: 'ai-image' as any,
+            x: shapeX,
+            y: shapeY,
             props: {
+              w: imageSize.width,
+              h: imageSize.height,
               url: mediaUrl,
+              prompt: config.prompt,
               model: config.model,
               generatedAt: Date.now(),
+              isVideo: isVideoMode,
+              generationConfig: JSON.stringify(configWithBatch),
             },
           })
 
-          // 只有第一张完成时移除遮罩任务
-          if (i === 0) {
-            setGenerationTasks(prev => prev.filter(t => t.id !== taskId))
-          }
-
-          // 最后一张图片完成时显示提示
-          if (i === count - 1) {
-            addToast(`${count}张${isVideoMode ? '视频' : '图片'}生成完成`, 'success')
-            // 选中所有生成的图片
-            editor.select(...shapeIds as TLShapeId[])
-          }
+          allShapeIds.push(newShapeId as string)
         }
-      }, 150)
-    }
+
+        // 移除遮罩任务
+        setGenerationTasks(prev => prev.filter(t => t.id !== taskId))
+
+        // 显示完成提示并选中所有生成的图片
+        addToast(`${count}张${isVideoMode ? '视频' : '图片'}生成完成`, 'success')
+        editor.select(...allShapeIds as TLShapeId[])
+      }
+    }, 150)
 
     setGenerationTasks(prev => [...prev, ...newTasks])
-    console.log(`📦 Created ${count} generation tasks`)
+    console.log(`📦 Created generation task for ${count} images`)
   }, [editor, addToast, hasCompletedOnboarding, setHasCompletedOnboarding])
 
   // 删除确认
@@ -1071,13 +1234,26 @@ function TldrawAppContent() {
     addToast(`已下载 ${selectedLayers.length} 个图层`, 'success')
   }, [layers, selectedLayerIds, addToast])
 
-  // Remix 操作
+  // Remix 操作 - 回填完整生成参数
   const handleRemix = useCallback(() => {
     if (!selectedLayer) return
-    if (selectedLayer.url && bottomDialogRef.current) {
+    if (!bottomDialogRef.current) return
+
+    // 获取图层的生成配置
+    const genConfig = selectedLayer.generationConfig
+    if (genConfig) {
+      // 使用 setFullConfig 回填完整配置
+      bottomDialogRef.current.setFullConfig({
+        ...genConfig,
+        // 将当前图层的 URL 作为参考图
+        referenceImages: selectedLayer.url ? [selectedLayer.url] : genConfig.referenceImages,
+      })
+      addToast('已回填生成参数', 'success')
+    } else {
+      // 如果没有生成配置，只添加为参考图
       bottomDialogRef.current.setReferenceImage(selectedLayer.url)
+      addToast('已添加为参考图', 'success')
     }
-    addToast('已添加为参考图', 'success')
   }, [selectedLayer, addToast])
 
   // 编辑操作
@@ -1096,34 +1272,159 @@ function TldrawAppContent() {
 
   // 填充到对话框
   const handleFillToDialog = useCallback(() => {
-    if (!selectedLayer?.url || !bottomDialogRef.current) return
-    bottomDialogRef.current.setReferenceImage(selectedLayer.url)
-    addToast('已添加为参考图', 'success')
-  }, [selectedLayer, addToast])
+    if (!bottomDialogRef.current) return
+    // 支持单选和多选
+    const selectedLayers = layers.filter(l => selectedLayerIds.includes(l.id))
+    const imageUrls = selectedLayers.filter(l => l.url).map(l => l.url)
+    if (imageUrls.length === 0) return
 
-  // 填充到关键帧
+    // 使用 addReferenceImages 方法，它会根据当前模式自动处理
+    bottomDialogRef.current.addReferenceImages(imageUrls)
+    addToast(`已添加 ${imageUrls.length} 张图片到工作区`, 'success')
+  }, [layers, selectedLayerIds, addToast])
+
+  // 填充到关键帧 - 将前两张图片填入视频模式的首尾帧
   const handleFillToKeyframes = useCallback(() => {
-    if (!selectedLayer?.url || !bottomDialogRef.current) return
-    // TODO: 实现关键帧填充
-    addToast('已添加到关键帧', 'success')
-  }, [selectedLayer, addToast])
+    if (!bottomDialogRef.current) return
+    const selectedLayers = layers.filter(l => selectedLayerIds.includes(l.id) && l.type !== 'video')
+    const imageUrls = selectedLayers.filter(l => l.url).map(l => l.url)
 
-  // 填充到图片生成
+    if (imageUrls.length === 0) {
+      addToast('请选择至少一张图片', 'info')
+      return
+    }
+
+    // 取前两张作为首尾帧
+    const startFrame = imageUrls[0]
+    const endFrame = imageUrls.length >= 2 ? imageUrls[1] : undefined
+
+    bottomDialogRef.current.setKeyframes(startFrame, endFrame)
+
+    if (endFrame) {
+      addToast('已填入首尾帧，切换到视频生成模式', 'success')
+    } else {
+      addToast('已填入首帧，切换到视频生成模式', 'success')
+    }
+  }, [layers, selectedLayerIds, addToast])
+
+  // 填充到图片生成 - 根据模型可填入的图片数量填入
   const handleFillToImageGen = useCallback(() => {
-    if (!selectedLayer?.url || !bottomDialogRef.current) return
-    bottomDialogRef.current.setReferenceImage(selectedLayer.url)
-    addToast('已添加为参考图', 'success')
-  }, [selectedLayer, addToast])
+    if (!bottomDialogRef.current) return
+    const selectedLayers = layers.filter(l => selectedLayerIds.includes(l.id) && l.type !== 'video')
+    const imageUrls = selectedLayers.filter(l => l.url).map(l => l.url)
 
-  // 合并图层
-  const handleMergeLayers = useCallback(() => {
+    if (imageUrls.length === 0) {
+      addToast('请选择至少一张图片', 'info')
+      return
+    }
+
+    // 获取当前图像模型支持的最大参考图数量
+    const maxImages = bottomDialogRef.current.getMaxImagesForModel()
+    const filledCount = Math.min(imageUrls.length, maxImages)
+
+    bottomDialogRef.current.setImageGenReferenceImages(imageUrls)
+    addToast(`已填入 ${filledCount} 张参考图到图像生成模式`, 'success')
+  }, [layers, selectedLayerIds, addToast])
+
+  // 合并图层 - 将选中图片合并为一张
+  const handleMergeLayers = useCallback(async () => {
+    if (!editor) return
     if (selectedLayerIds.length < 2) {
       addToast('请选择至少 2 个图层', 'info')
       return
     }
-    // TODO: 实现图层合并
-    addToast('图层合并功能开发中', 'info')
-  }, [selectedLayerIds, addToast])
+
+    const selectedLayers = layers.filter(l => selectedLayerIds.includes(l.id) && l.type !== 'video')
+    if (selectedLayers.length < 2) {
+      addToast('请选择至少 2 张图片进行合并', 'info')
+      return
+    }
+
+    try {
+      // 计算所有选中图层的边界框
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+      for (const layer of selectedLayers) {
+        minX = Math.min(minX, layer.x)
+        minY = Math.min(minY, layer.y)
+        maxX = Math.max(maxX, layer.x + layer.width)
+        maxY = Math.max(maxY, layer.y + layer.height)
+      }
+
+      const mergedWidth = maxX - minX
+      const mergedHeight = maxY - minY
+
+      // 创建离屏 canvas 进行合并
+      const canvas = document.createElement('canvas')
+      canvas.width = mergedWidth
+      canvas.height = mergedHeight
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        addToast('合并失败：无法创建画布', 'error')
+        return
+      }
+
+      // 按 Z 轴顺序（从底到顶）绘制图片
+      const currentPageId = editor.getCurrentPageId()
+      const sortedIds = editor.getSortedChildIdsForParent(currentPageId)
+
+      // 过滤出选中的图层并按 Z 轴顺序排列（从底到顶）
+      const sortedSelectedLayers = sortedIds
+        .map(id => selectedLayers.find(l => l.id === id))
+        .filter((l): l is ImageLayer => l !== undefined)
+
+      // 加载并绘制所有图片
+      for (const layer of sortedSelectedLayers) {
+        await new Promise<void>((resolve, reject) => {
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          img.onload = () => {
+            // 计算相对位置
+            const relX = layer.x - minX
+            const relY = layer.y - minY
+            ctx.drawImage(img, relX, relY, layer.width, layer.height)
+            resolve()
+          }
+          img.onerror = () => {
+            console.error('Failed to load image:', layer.url)
+            resolve() // 继续处理其他图片
+          }
+          img.src = layer.url
+        })
+      }
+
+      // 生成合并后的图片 URL
+      const mergedUrl = canvas.toDataURL('image/png')
+
+      // 删除原有图层
+      editor.deleteShapes(selectedLayerIds as TLShapeId[])
+
+      // 创建新的合并图层
+      const newShapeId = createShapeId()
+      editor.createShape({
+        id: newShapeId,
+        type: 'ai-image' as const,
+        x: minX,
+        y: minY,
+        props: {
+          w: mergedWidth,
+          h: mergedHeight,
+          url: mergedUrl,
+          prompt: '合并图层',
+          model: '',
+          generatedAt: Date.now(),
+          isVideo: false,
+        },
+      } as any)
+
+      // 选中新创建的图层
+      editor.select(newShapeId)
+
+      addToast(`已合并 ${sortedSelectedLayers.length} 个图层`, 'success')
+    } catch (error) {
+      console.error('Merge layers error:', error)
+      addToast('合并图层失败', 'error')
+    }
+  }, [editor, layers, selectedLayerIds, addToast])
 
   // 处理创建新项目
   const handleCreateProject = useCallback(() => {
@@ -1189,11 +1490,24 @@ function TldrawAppContent() {
     },
   ]
 
-  // 如果显示加载屏幕（带过渡网格）
-  if (showLoading) {
-    const canvasBackground = lightTheme
+  // 获取主题画布背景（loading 和 landing 也使用）
+  const getThemedCanvasBackground = () => {
+    if (theme.canvasBackground && theme.canvasBackground !== 'transparent') {
+      return theme.canvasBackground
+    }
+    return lightTheme
       ? 'linear-gradient(135deg, #f8f9ff 0%, #e8ecff 50%, #f0f4ff 100%)'
       : 'linear-gradient(135deg, #0a0b14 0%, #12141f 50%, #0f1118 100%)'
+  }
+
+  // 如果显示加载屏幕（带过渡网格）
+  if (showLoading) {
+    const loadingBackground = getThemedCanvasBackground()
+    const needsLoadingAnimation = loadingBackground.includes('gradient')
+    // 使用主题的网格颜色
+    const gridLineColor = theme.gridColor || (lightTheme
+      ? 'rgba(102, 126, 234, 0.06)'
+      : 'rgba(102, 126, 234, 0.1)')
 
     return (
       <>
@@ -1205,9 +1519,9 @@ function TldrawAppContent() {
             left: 0,
             width: '100vw',
             height: '100vh',
-            background: canvasBackground,
-            backgroundSize: '200% 200%',
-            animation: 'gradient-shift 15s ease infinite',
+            background: loadingBackground,
+            backgroundSize: needsLoadingAnimation ? '200% 200%' : undefined,
+            animation: needsLoadingAnimation ? 'gradient-shift 15s ease infinite' : undefined,
             zIndex: -10,
           }}
         />
@@ -1266,10 +1580,7 @@ function TldrawAppContent() {
 
           .canvas-grid-line {
             position: absolute;
-            background: ${lightTheme
-              ? 'linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.06), transparent)'
-              : 'linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent)'
-            };
+            background: linear-gradient(90deg, transparent, ${gridLineColor}, transparent);
           }
         `}</style>
 
@@ -1280,9 +1591,8 @@ function TldrawAppContent() {
 
   // 如果显示首页或正在过渡，渲染首页
   if (showLandingPage || isTransitioning) {
-    const canvasBackground = lightTheme
-      ? 'linear-gradient(135deg, #f8f9ff 0%, #e8ecff 50%, #f0f4ff 100%)'
-      : 'linear-gradient(135deg, #0a0b14 0%, #12141f 50%, #0f1118 100%)'
+    const landingBackground = getThemedCanvasBackground()
+    const needsLandingAnimation = landingBackground.includes('gradient')
 
     return (
       <>
@@ -1294,9 +1604,9 @@ function TldrawAppContent() {
             left: 0,
             width: '100vw',
             height: '100vh',
-            background: canvasBackground,
-            backgroundSize: '200% 200%',
-            animation: 'gradient-shift 15s ease infinite',
+            background: landingBackground,
+            backgroundSize: needsLandingAnimation ? '200% 200%' : undefined,
+            animation: needsLandingAnimation ? 'gradient-shift 15s ease infinite' : undefined,
             zIndex: -10,
           }}
         />
@@ -1319,14 +1629,20 @@ function TldrawAppContent() {
     )
   }
 
-  // 主画布界面
-  const canvasBackground = lightTheme
-    ? 'linear-gradient(135deg, #f8f9ff 0%, #e8ecff 50%, #f0f4ff 100%)'
-    : 'linear-gradient(135deg, #0a0b14 0%, #12141f 50%, #0f1118 100%)'
+  // 主画布界面 - 使用主题背景
+  // 如果主题有自定义画布背景，使用它；否则使用默认渐变
+  const canvasBackground = theme.canvasBackground && theme.canvasBackground !== 'transparent'
+    ? theme.canvasBackground
+    : (lightTheme
+        ? 'linear-gradient(135deg, #f8f9ff 0%, #e8ecff 50%, #f0f4ff 100%)'
+        : 'linear-gradient(135deg, #0a0b14 0%, #12141f 50%, #0f1118 100%)')
+
+  // 应用背景是否需要动画（渐变背景需要动画，纯色不需要）
+  const needsAnimation = canvasBackground.includes('gradient')
 
   return (
     <>
-      {/* 全局背景层 - 带蓝色渐变 */}
+      {/* 全局背景层 - 根据主题设置 */}
       <div
         style={{
           position: 'fixed',
@@ -1335,11 +1651,12 @@ function TldrawAppContent() {
           width: '100vw',
           height: '100vh',
           background: canvasBackground,
-          backgroundSize: '200% 200%',
-          animation: 'gradient-shift 15s ease infinite',
+          backgroundSize: needsAnimation ? '200% 200%' : undefined,
+          animation: needsAnimation ? 'gradient-shift 15s ease infinite' : undefined,
           zIndex: -10,
         }}
       />
+      {/* tldraw 主题样式覆盖 */}
       <style>{`
         @keyframes gradient-shift {
           0%, 100% {
@@ -1348,6 +1665,35 @@ function TldrawAppContent() {
           50% {
             background-position: 100% 50%;
           }
+        }
+
+        /* 覆盖 tldraw 选择框颜色 */
+        .tl-user-1 .tl-selection__fg {
+          stroke: ${theme.selectionStroke || '#38BDFF'} !important;
+        }
+        .tl-user-1 .tl-selection__bg {
+          fill: ${theme.selectionFill || 'rgba(56, 189, 255, 0.08)'} !important;
+        }
+        /* 覆盖缩放手柄颜色 */
+        .tl-handle {
+          fill: ${theme.handleFill || '#38BDFF'} !important;
+          stroke: ${theme.handleStroke || '#FFFFFF'} !important;
+        }
+        .tl-corner-handle {
+          fill: ${theme.handleFill || '#38BDFF'} !important;
+          stroke: ${theme.handleStroke || '#FFFFFF'} !important;
+        }
+        /* 覆盖 tldraw 画布背景为透明（由我们的背景层控制） */
+        .tl-background {
+          background: transparent !important;
+        }
+        .tl-canvas {
+          background: transparent !important;
+        }
+        /* 生成中效果样式 - 根据主题 */
+        .generating-overlay-themed {
+          border: ${theme.generatingBorder || '2px solid rgba(56, 189, 255, 0.5)'};
+          box-shadow: ${theme.generatingGlow || '0 0 20px rgba(56, 189, 255, 0.3)'};
         }
       `}</style>
       <div
@@ -1389,7 +1735,7 @@ function TldrawAppContent() {
               })
               return tools
             },
-            // 禁用不需要的操作快捷键
+            // 禁用不需要的操作快捷键，并自定义缩放行为
             actions(editor, actions) {
               // 保留的操作列表
               const allowedActions = [
@@ -1407,6 +1753,31 @@ function TldrawAppContent() {
                   actions[key] = { ...actions[key], kbd: undefined }
                 }
               })
+
+              // 自定义 zoom-in：每次缩放 10%
+              if (actions['zoom-in']) {
+                actions['zoom-in'] = {
+                  ...actions['zoom-in'],
+                  onSelect() {
+                    const currentZoom = editor.getZoomLevel()
+                    const newZoom = Math.min(currentZoom + 0.1, 8) // 最大 800%
+                    editor.setCamera({ ...editor.getCamera(), z: newZoom })
+                  },
+                }
+              }
+
+              // 自定义 zoom-out：每次缩放 10%
+              if (actions['zoom-out']) {
+                actions['zoom-out'] = {
+                  ...actions['zoom-out'],
+                  onSelect() {
+                    const currentZoom = editor.getZoomLevel()
+                    const newZoom = Math.max(currentZoom - 0.1, 0.1) // 最小 10%
+                    editor.setCamera({ ...editor.getCamera(), z: newZoom })
+                  },
+                }
+              }
+
               return actions
             },
           }}
@@ -1471,8 +1842,9 @@ function TldrawAppContent() {
         isLandingPage={false}
       />
 
-      {/* 选中图层的名称标签和详情图标 - 仅在图层静止且单选时显示 */}
-      {!isLayerTransforming && selectedLayerIds.length === 1 && selectedLayerScreenPos && selectedLayer && (
+      {/* 选中图层的名称标签和详情图标 - 图层静止时显示，生成中不显示 */}
+      {!isLayerTransforming && selectedLayerIds.length === 1 && selectedLayerScreenPos && selectedLayer &&
+       !generationTasks.some(t => t.status === 'generating' && t.shapeId === selectedLayer.id) && (
         <div
           style={{
             position: 'fixed',
@@ -1499,8 +1871,8 @@ function TldrawAppContent() {
             <img
               src={selectedLayer.type === 'video' ? '/assets/icons/video.svg' : '/assets/icons/image.svg'}
               alt={selectedLayer.type === 'video' ? 'video' : 'image'}
-              width={20}
-              height={20}
+              width={16}
+              height={16}
               style={{
                 filter: lightTheme ? 'brightness(0.5)' : 'brightness(0) invert(1)',
                 opacity: 0.6,
@@ -1517,15 +1889,9 @@ function TldrawAppContent() {
                 textOverflow: 'ellipsis',
               }}
             >
-              {selectedLayer.generationConfig?.prompt
-                || selectedLayer.name
+              {selectedLayer.name
                 || `${selectedLayer.type === 'video' ? 'Video' : 'Image'} ${selectedLayer.id.slice(-4)}`
               }
-              {selectedLayer.generationConfig?.batchTotal && selectedLayer.generationConfig.batchTotal > 1 && (
-                <span style={{ opacity: 0.7 }}>
-                  {` (${(selectedLayer.generationConfig.batchIndex || 0) + 1}/${selectedLayer.generationConfig.batchTotal})`}
-                </span>
-              )}
             </span>
           </div>
           {/* 右侧：详情图标 */}
@@ -1546,16 +1912,17 @@ function TldrawAppContent() {
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             title="查看详情"
           >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <circle cx="10" cy="10" r="8" stroke={lightTheme ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)'} strokeWidth="1.5" fill="none" />
-              <path d="M10 9V14M10 6.5V7" stroke={lightTheme ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)'} strokeWidth="1.5" strokeLinecap="round" />
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="6.5" stroke={lightTheme ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)'} strokeWidth="1.2" fill="none" />
+              <path d="M8 7V11M8 5V5.5" stroke={lightTheme ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)'} strokeWidth="1.2" strokeLinecap="round" />
             </svg>
           </button>
         </div>
       )}
 
-      {/* 选中图层的工具栏 - 仅在图层静止时显示 */}
-      {!isLayerTransforming && selectedLayerIds.length > 0 && selectedLayerScreenPos && (
+      {/* 选中图层的工具栏 - 图层静止时显示，生成中不显示 */}
+      {!isLayerTransforming && selectedLayerIds.length > 0 && selectedLayerScreenPos &&
+       !generationTasks.some(t => t.status === 'generating' && selectedLayerIds.includes(t.shapeId || '')) && (
         <ImageToolbar
           selectedLayers={layers.filter(l => selectedLayerIds.includes(l.id))}
           layerPosition={{
@@ -1578,8 +1945,9 @@ function TldrawAppContent() {
         />
       )}
 
-      {/* 详情面板 - 仅在图层静止时显示 */}
-      {!isLayerTransforming && showDetailPanel && selectedLayer && selectedLayerScreenPos && (
+      {/* 详情面板 - 生成中不显示 */}
+      {showDetailPanel && selectedLayer && selectedLayerScreenPos &&
+       !generationTasks.some(t => t.status === 'generating' && t.shapeId === selectedLayer.id) && (
         <div
           style={{
             position: 'fixed',
@@ -1609,6 +1977,7 @@ function TldrawAppContent() {
               x: selectedLayerScreenPos.x,
               y: selectedLayerScreenPos.y + selectedLayerScreenPos.height + 10,
             }}
+            videoUrl={selectedLayer.url}
           />
         )
       })()}
@@ -1914,10 +2283,12 @@ function TldrawAppContent() {
       {/* 暗色/亮色模式覆盖样式 */}
       <style>{`
         .tl-background {
-          background-color: ${lightTheme ? '#FFFFFF' : '#181818'} !important;
+          background: ${lightTheme
+            ? 'linear-gradient(135deg, #f8f9ff 0%, #e8ecff 50%, #f0f4ff 100%)'
+            : 'linear-gradient(135deg, #0a0b14 0%, #12141f 50%, #0f1118 100%)'} !important;
         }
         .tl-canvas {
-          background-color: ${lightTheme ? '#FFFFFF' : '#181818'} !important;
+          background: transparent !important;
         }
         [data-radix-popper-content-wrapper] {
           display: none !important;

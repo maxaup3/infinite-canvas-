@@ -165,7 +165,11 @@ export interface BottomDialogRef {
   setReferenceImage: (imageUrl: string) => void;
   addReferenceImages: (imageUrls: string[]) => void;
   setConfig: (config: Partial<GenerationConfig>) => void;
+  setFullConfig: (config: GenerationConfig) => void; // Remix 回填完整配置
+  setKeyframes: (startFrame: string, endFrame?: string) => void; // 填入首尾帧并切换到视频模式
+  setImageGenReferenceImages: (imageUrls: string[]) => void; // 填入图像生成参考图（根据模型限制）
   focusPrompt: () => void;
+  getMaxImagesForModel: () => number; // 获取当前图像模型支持的最大参考图数
 }
 
 const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
@@ -217,22 +221,49 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
     return config.mode === 'image' ? config.imageLoraWeight : config.videoLoraWeight;
   };
 
-  const [config, setConfig] = useState<GenerationConfig>({
-    mode: 'image', // 默认图片模式
-    model: 'qwen-image-edit', // 默认图像模型
+  // 图像模式默认配置
+  const defaultImageConfig: GenerationConfig = {
+    mode: 'image',
+    model: 'qwen-image-edit',
     aspectRatio: '16:9',
     count: 1,
     prompt: '',
-    enhancePrompt: true, // 默认开启提示词增强
-    audioVideoSync: false, // 默认关闭音画同步
+    enhancePrompt: true,
+    audioVideoSync: false,
     loraWeight: 0.8,
-    // 视频专属默认值
+  };
+
+  // 视频模式默认配置
+  const defaultVideoConfig: GenerationConfig = {
+    mode: 'video',
+    model: 'wan2.2',
+    aspectRatio: '16:9',
+    count: 1,
+    prompt: '',
+    enhancePrompt: true,
+    audioVideoSync: false,
+    loraWeight: 0.8,
     videoCapability: 'image-to-video',
-    videoDuration: 5,
+    videoDuration: 3,
     videoQuality: 'fast',
     videoSound: true,
     videoResolution: '720p',
-  });
+  };
+
+  // 分开存储图像和视频模式的配置
+  const [imageConfig, setImageConfig] = useState<GenerationConfig>(defaultImageConfig);
+  const [videoConfig, setVideoConfig] = useState<GenerationConfig>(defaultVideoConfig);
+  const [currentMode, setCurrentMode] = useState<'image' | 'video'>('image');
+
+  // 当前使用的配置（基于当前模式）
+  const config = currentMode === 'image' ? imageConfig : videoConfig;
+  const setConfig = (newConfig: GenerationConfig | ((prev: GenerationConfig) => GenerationConfig)) => {
+    if (currentMode === 'image') {
+      setImageConfig(typeof newConfig === 'function' ? newConfig : () => newConfig);
+    } else {
+      setVideoConfig(typeof newConfig === 'function' ? newConfig : () => newConfig);
+    }
+  };
   const [showModeDropdown, setShowModeDropdown] = useState(false);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [showCapabilityDropdown, setShowCapabilityDropdown] = useState(false);
@@ -385,15 +416,64 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
       });
     },
     setConfig: (newConfig: Partial<GenerationConfig>) => {
-      setConfig(prev => ({
+      // 如果指定了模式，先切换模式
+      if (newConfig.mode) {
+        setCurrentMode(newConfig.mode);
+      }
+      // 根据目标模式更新对应的配置
+      const targetMode = newConfig.mode || currentMode;
+      if (targetMode === 'image') {
+        setImageConfig(prev => ({ ...prev, ...newConfig }));
+      } else {
+        setVideoConfig(prev => ({ ...prev, ...newConfig }));
+      }
+    },
+    setFullConfig: (fullConfig: GenerationConfig) => {
+      // Remix 回填：完整替换对应模式的配置
+      const targetMode = fullConfig.mode || 'image';
+      setCurrentMode(targetMode);
+      if (targetMode === 'image') {
+        setImageConfig({ ...defaultImageConfig, ...fullConfig });
+      } else {
+        setVideoConfig({ ...defaultVideoConfig, ...fullConfig });
+      }
+    },
+    setKeyframes: (startFrame: string, endFrame?: string) => {
+      // 切换到视频模式，设置首尾帧
+      setCurrentMode('video');
+      if (endFrame) {
+        // 有两张图：使用首尾帧模式
+        setVideoConfig(prev => ({
+          ...prev,
+          videoCapability: 'first-last-frame',
+          videoStartFrame: startFrame,
+          videoEndFrame: endFrame,
+        }));
+      } else {
+        // 只有一张图：使用图生视频模式
+        setVideoConfig(prev => ({
+          ...prev,
+          videoCapability: 'image-to-video',
+          videoStartFrame: startFrame,
+          videoEndFrame: undefined,
+        }));
+      }
+    },
+    setImageGenReferenceImages: (imageUrls: string[]) => {
+      // 切换到图像模式，根据模型限制填入参考图
+      setCurrentMode('image');
+      const maxImages = getMaxImages(imageConfig.model);
+      const limitedImages = imageUrls.slice(0, maxImages);
+      setImageConfig(prev => ({
         ...prev,
-        ...newConfig,
+        referenceImages: limitedImages,
       }));
-      if (newConfig.referenceImage !== undefined || newConfig.referenceImages !== undefined) {
-        }
     },
     focusPrompt: () => {
       textareaRef.current?.focus();
+    },
+    getMaxImagesForModel: () => {
+      return getMaxImages(imageConfig.model);
     },
   }));
 
@@ -933,7 +1013,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
               style={{
                 position: 'absolute',
                 top: 0,
-                left: config.mode === 'image' ? 0 : '50%',
+                left: currentMode === 'image' ? 0 : '50%',
                 width: '50%',
                 height: '100%',
                 background: isLightTheme ? '#FFFFFF' : '#181818',
@@ -947,7 +1027,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
             <div
               data-tab="image"
               onClick={() => {
-                setConfig(prev => ({ ...prev, mode: 'image', model: 'qwen-image-edit' }));
+                setCurrentMode('image');
               }}
               style={{
                 position: 'relative',
@@ -986,7 +1066,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
             <div
               data-tab="video"
               onClick={() => {
-                setConfig(prev => ({ ...prev, mode: 'video', model: 'wan2.2' }));
+                setCurrentMode('video');
               }}
               style={{
                 position: 'relative',
@@ -2065,18 +2145,8 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                   <ModeSelector
                     selectedMode={config.mode}
                     onSelect={(mode) => {
-                      // 切换模式时更新配置
-                      setConfig(prev => {
-                        const newConfig = { ...prev, mode };
-                        // 根据模式切换到对应的默认模型
-                        if (mode === 'video') {
-                          newConfig.model = 'ltx-2'; // 默认视频模型 LTX 2
-                          newConfig.videoCapability = newConfig.videoCapability || 'image-to-video';
-                        } else {
-                          newConfig.model = 'z-image'; // 默认图片模型 Z-image
-                        }
-                        return newConfig;
-                      });
+                      // 切换模式：更新 currentMode（这会同步顶部 Tab 指示器）
+                      setCurrentMode(mode);
                       setShowModeDropdown(false);
                       setModeDropdownPosition(null);
                     }}
