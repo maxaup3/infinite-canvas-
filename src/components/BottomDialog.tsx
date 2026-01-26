@@ -7,17 +7,8 @@ import ModelDropdown from './ModelDropdown';
 import CapabilitySelector from './CapabilitySelector';
 import LoraSelector from './LoraSelector';
 import LibraryDialog from './LibraryDialog';
-import { useTheme, getThemeStyles, isLightTheme as checkLightTheme } from '../contexts/ThemeContext';
-// 导入图标
-const iconModel = '/assets/icons/model.svg';
-const iconMagic = '/assets/icons/magic.svg';
-const iconInitialImg = '/assets/icons/initial_img.svg';
-const iconEnhancePrompts = '/assets/icons/enhance_prompts.svg';
-const iconNotify = '/assets/icons/notify.svg';
-const iconCredits = '/assets/icons/credits.svg';
-const iconArrowDown = '/assets/icons/arrow_down.svg';
-const iconSwitch = '/assets/icons/switch.svg';
-const iconPro = '/assets/icons/pro.svg';
+import { useThemedStyles, getIconFilter } from '../hooks/useThemedStyles';
+import { ICONS } from '../constants/icons';
 
 // Tooltip 组件 - 基于 Figma 设计
 interface TooltipProps {
@@ -182,12 +173,8 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
   isLandingPage = false,
   modeSelectorStyle = 'colored-text',
 }, ref) => {
-  const { themeMode } = useTheme();
-  const theme = getThemeStyles(themeMode);
+  const { isLight: isLightTheme, theme, iconFilter } = useThemedStyles();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-
-  // 判断是否为浅色主题
-  const isLightTheme = checkLightTheme(themeMode);
 
   // 辅助函数：根据主题获取文字颜色
   const getTextColor = (opacity: number) => {
@@ -202,7 +189,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
   };
 
   // 辅助函数：根据主题获取图标 filter (用于反转白色图标为深色)
-  const getIconFilter = () => {
+  const getBottomDialogIconFilter = () => {
     if (isLightTheme) {
       // 浅色主题：反转颜色并降低亮度,使白色图标变为深色
       return 'invert(1) brightness(0.3)';
@@ -1336,7 +1323,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                     <>
                       {/* 切换图标 */}
                       <img
-                        src={iconSwitch}
+                        src={ICONS.switch}
                         alt="Switch"
                         width={12}
                         height={12}
@@ -2129,7 +2116,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                       {config.mode === 'image' ? '图像生成' : '视频生成'}
                     </span>
                     <img
-                      src={iconArrowDown}
+                      src={ICONS.arrowDown}
                       alt="Arrow Down"
                       width={16}
                       height={16}
@@ -2137,7 +2124,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                         flexShrink: 0,
                         transform: showModeDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
                         transition: 'transform 0.2s',
-                        filter: getIconFilter(),
+                        filter: getBottomDialogIconFilter(),
                       }}
                     />
                 </div>
@@ -2207,7 +2194,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                    <img src={iconModel} alt="Model" width={20} height={20} style={{ flexShrink: 0, filter: getIconFilter() }} />
+                    <img src={ICONS.model} alt="Model" width={20} height={20} style={{ flexShrink: 0, filter: getBottomDialogIconFilter() }} />
                     <span style={{
                       fontSize: 14,
                       fontWeight: 600,
@@ -2218,7 +2205,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                       {modelData.find(m => m.id === config.model)?.name || (config.mode === 'video' ? 'Wan2.2' : 'Qwen-Image-Edit')}
                     </span>
                     <img
-                      src={iconArrowDown}
+                      src={ICONS.arrowDown}
                       alt="Arrow Down"
                       width={16}
                       height={16}
@@ -2226,7 +2213,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                         flexShrink: 0,
                         transform: showModelDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
                         transition: 'transform 0.2s',
-                        filter: getIconFilter(),
+                        filter: getBottomDialogIconFilter(),
                       }}
                     />
                 </div>
@@ -2305,7 +2292,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                          '首尾帧'}
                       </span>
                       <img
-                        src={iconArrowDown}
+                        src={ICONS.arrowDown}
                         alt="Arrow Down"
                         width={16}
                         height={16}
@@ -2313,7 +2300,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                           flexShrink: 0,
                           transform: showCapabilityDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
                           transition: 'transform 0.2s',
-                          filter: getIconFilter(),
+                          filter: getBottomDialogIconFilter(),
                         }}
                       />
                   </div>
@@ -2354,7 +2341,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                    <img src={iconMagic} alt="Magic" width={20} height={20} style={{ flexShrink: 0, filter: getIconFilter() }} />
+                    <img src={ICONS.magic} alt="Magic" width={20} height={20} style={{ flexShrink: 0, filter: getBottomDialogIconFilter() }} />
                     <span style={{
                       fontSize: 14,
                       fontWeight: 600,
@@ -2461,7 +2448,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                       e.currentTarget.style.background = 'transparent';
                     }}
                   >
-                    <img src={iconInitialImg} alt="Reference Image" width={20} height={20} style={{ flexShrink: 0, filter: getIconFilter() }} />
+                    <img src={ICONS.initialImg} alt="Reference Image" width={20} height={20} style={{ flexShrink: 0, filter: getBottomDialogIconFilter() }} />
                   </div>
                   </Tooltip>
                 );
@@ -2493,7 +2480,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                 }}
               >
                 <img
-                  src={iconEnhancePrompts}
+                  src={ICONS.enhancePrompts}
                   alt="Enhance Prompts"
                   width={20}
                   height={20}
@@ -2537,7 +2524,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                 }}
               >
                 <img
-                  src={iconNotify}
+                  src={ICONS.notify}
                   alt="Audio Video Sync"
                   width={20}
                   height={20}
@@ -2636,7 +2623,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                   : `${config.count}张`}
               </span>
               <img
-                src={iconArrowDown}
+                src={ICONS.arrowDown}
                 alt="Arrow Down"
                 width={16}
                 height={16}
@@ -2644,7 +2631,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                   flexShrink: 0,
                   transform: showRatioDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.2s',
-                  filter: getIconFilter(),
+                  filter: getBottomDialogIconFilter(),
                 }}
               />
             </div>
@@ -2798,7 +2785,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                               }}
                             >
                               <span>{item.label}</span>
-                              {item.pro && <img src={iconPro} alt="PRO" width={24} height={12} style={{ flexShrink: 0 }} />}
+                              {item.pro && <img src={ICONS.pro} alt="PRO" width={24} height={12} style={{ flexShrink: 0 }} />}
                             </button>
                           );
                         })}
@@ -2857,7 +2844,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                               }}
                             >
                               <span>{item.label}</span>
-                              {item.pro && <img src={iconPro} alt="PRO" width={24} height={12} style={{ flexShrink: 0 }} />}
+                              {item.pro && <img src={ICONS.pro} alt="PRO" width={24} height={12} style={{ flexShrink: 0 }} />}
                             </button>
                           );
                         })}
@@ -2994,7 +2981,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                               }}
                             >
                               <span style={{ whiteSpace: 'nowrap' }}>{item.label}</span>
-                              {item.pro && <img src={iconPro} alt="PRO" width={24} height={12} style={{ flexShrink: 0 }} />}
+                              {item.pro && <img src={ICONS.pro} alt="PRO" width={24} height={12} style={{ flexShrink: 0 }} />}
                             </button>
                           );
                         })}
@@ -3091,11 +3078,11 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                       flexShrink: 0,
                       marginTop: 2,
                       backgroundColor: isLightTheme ? 'rgba(0, 0, 0, 0.65)' : 'rgba(255, 255, 255, 0.85)',
-                      WebkitMaskImage: `url(${iconCredits})`,
+                      WebkitMaskImage: `url(${ICONS.credits})`,
                       WebkitMaskSize: 'contain',
                       WebkitMaskRepeat: 'no-repeat',
                       WebkitMaskPosition: 'center',
-                      maskImage: `url(${iconCredits})`,
+                      maskImage: `url(${ICONS.credits})`,
                       maskSize: 'contain',
                       maskRepeat: 'no-repeat',
                       maskPosition: 'center',

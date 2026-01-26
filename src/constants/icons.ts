@@ -24,6 +24,10 @@ export const ICONS = {
   credits: '/assets/icons/credits.svg',
   magic: '/assets/icons/magic.svg',
   enhancePrompts: '/assets/icons/enhance_prompts.svg',
+  initialImg: '/assets/icons/initial_img.svg',
+  notify: '/assets/icons/notify.svg',
+  switch: '/assets/icons/switch.svg',
+  pro: '/assets/icons/pro.svg',
 
   // 工具图标
   model: '/assets/icons/model.svg',
