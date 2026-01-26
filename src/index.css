@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "antd/dist/reset.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -145,10 +144,5 @@
   body {
     @apply bg-background text-foreground;
   }
-}
-
-/* Remove outline from modal close button */
-.ant-modal-close:focus-visible {
-  outline: none !important;
 }
 

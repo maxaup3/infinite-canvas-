@@ -1,5 +1,5 @@
-import React, { CSSProperties } from 'react';
-import { Modal, ConfigProvider } from 'antd';
+import React from 'react';
+import Modal from './Modal';
 
 export interface DeleteConfirmModalProps {
   visible: boolean;
@@ -16,10 +16,6 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   onOk,
   onCancel,
 }) => {
-  const modalStyle: CSSProperties = {
-    backgroundColor: '#2a2a2e',
-  };
-
   // 自定义title，包含icon
   const titleWithIcon = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -34,55 +30,18 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   );
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorBgElevated: '#2a2a2e',
-          colorText: 'rgba(255, 255, 255, 0.85)',
-          colorTextHeading: '#FFFFFF',
-          colorBorder: 'rgba(255, 255, 255, 0.1)',
-          colorIcon: 'rgba(255, 255, 255, 0.85)',
-          colorIconHover: '#FFFFFF',
-        },
-        components: {
-          Modal: {
-            contentBg: '#2a2a2e',
-            headerBg: '#2a2a2e',
-            titleFontSize: 16,
-            borderRadiusLG: 12,
-            colorTextHeading: '#FFFFFF',
-            colorIconHover: 'rgba(255, 255, 255, 0.85)',
-          },
-          Button: {
-            defaultBorderColor: 'rgba(255, 255, 255, 0.2)',
-            defaultColor: 'rgba(255, 255, 255, 0.85)',
-            defaultBg: 'transparent',
-          },
-        },
-      }}
+    <Modal
+      open={visible}
+      title={titleWithIcon}
+      okText="删除"
+      cancelText="取消"
+      okButtonProps={{ danger: true }}
+      onOk={onOk}
+      onCancel={onCancel}
+      centered
     >
-      <Modal
-        open={visible}
-        title={titleWithIcon}
-        okText="删除"
-        cancelText="取消"
-        okButtonProps={{ danger: true }}
-        cancelButtonProps={{
-          style: {
-            color: 'rgba(255, 255, 255, 0.85)',
-            borderColor: 'rgba(255, 255, 255, 0.2)',
-            backgroundColor: 'transparent'
-          }
-        }}
-        onOk={onOk}
-        onCancel={onCancel}
-        centered
-        destroyOnHidden
-        style={modalStyle}
-      >
-        {content}
-      </Modal>
-    </ConfigProvider>
+      {content}
+    </Modal>
   );
 };
 
