@@ -1,19 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ImageLayer } from '../types';
 import { BorderRadius } from '../styles/constants';
+import { useTheme, getThemeStyles, isLightTheme } from '../contexts/ThemeContext';
+import { getResolutionLevel } from '../utils/imageUtils';
+
+// 图标路径
 const iconRemix = '/assets/icons/remix.svg';
 const iconEdit = '/assets/icons/edit.svg';
 const iconDownload = '/assets/icons/download.svg';
-const iconInfo = '/assets/icons/info_circle.svg';
 const iconKeyframes = '/assets/icons/start_end_frames.svg';
 const iconImage = '/assets/icons/image.svg';
 const iconMerge = '/assets/icons/copy.svg';
-const iconAlbum = '/assets/icons/album.svg';
-const iconFillDialog = '/assets/icons/%E4%BC%A0%E5%85%A53_afferent-three%201.svg';
+const iconFillDialog = '/assets/icons/image.svg'; // 加入工作区
 const iconCopy = '/assets/icons/copy.svg';
 const iconCredits = '/assets/icons/credits.svg';
-import { useTheme, getThemeStyles, isLightTheme } from '../contexts/ThemeContext';
-import { getResolutionLevel } from '../utils/imageUtils';
 
 interface ImageToolbarProps {
   selectedLayers: ImageLayer[];

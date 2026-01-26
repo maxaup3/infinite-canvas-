@@ -30,6 +30,12 @@ import AllProjectsPage from './components/AllProjectsPage'
 import LoadingScreen from './components/LoadingScreen'
 import { ImageLayer, GenerationTask, GenerationConfig, EditMode } from './types'
 import { ThemeProvider, useTheme, getThemeStyles, isLightTheme } from './contexts/ThemeContext'
+import {
+  getViewportCenter,
+  getImageSizeFromAspectRatio,
+  calculateGridLayout,
+  getGridPosition,
+} from './utils/canvasUtils'
 
 // 自定义形状
 const customShapeUtils = [AIImageShapeUtil]
@@ -265,7 +271,6 @@ function TldrawAppContent() {
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([])
   const [zoom, setZoom] = useState(100)
   const [camera, setCamera] = useState({ x: 0, y: 0, z: 1 })
-  const [credits] = useState(200.20)
   const [projectName, setProjectName] = useState('Untitled')
   const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(false)
   const [isBottomDialogExpanded, setIsBottomDialogExpanded] = useState(true)
@@ -506,13 +511,7 @@ function TldrawAppContent() {
   // 从资料库导入
   const handleImportFromLibrary = useCallback(() => {
     if (!editor) return
-    const viewportBounds = editor.getViewportScreenBounds()
-    const centerScreen = {
-      x: viewportBounds.x + viewportBounds.width / 2,
-      y: viewportBounds.y + viewportBounds.height / 2,
-    }
-    const centerPage = editor.screenToPage(centerScreen)
-    setLibraryInsertPosition(centerPage)
+    setLibraryInsertPosition(getViewportCenter(editor))
     setShowLibraryDialog(true)
     setContextMenu(null)
   }, [editor])
@@ -522,12 +521,7 @@ function TldrawAppContent() {
     if (!editor || !e.target.files) return
 
     const files = Array.from(e.target.files)
-    const viewportBounds = editor.getViewportScreenBounds()
-    const centerScreen = {
-      x: viewportBounds.x + viewportBounds.width / 2,
-      y: viewportBounds.y + viewportBounds.height / 2,
-    }
-    const position = editor.screenToPage(centerScreen)
+    const position = getViewportCenter(editor)
 
     for (const file of files) {
       if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) continue
@@ -642,41 +636,13 @@ function TldrawAppContent() {
       // 延迟执行，确保 editor 完全准备好
       setTimeout(() => {
         // 直接在这里执行生成逻辑（因为此时 handleGenerate 可能还引用旧的 editor）
-        const viewportBounds = ed.getViewportScreenBounds()
-        const centerScreen = {
-          x: viewportBounds.x + viewportBounds.width / 2,
-          y: viewportBounds.y + viewportBounds.height / 2,
-        }
-        const centerPage = ed.screenToPage(centerScreen)
-
-        // 根据 aspectRatio 计算实际尺寸
-        // 固定宽边为 256，根据比例计算高度
-        const getImageSize = (aspectRatio: string, baseWidth: number = 256) => {
-          const ratioMap: { [key: string]: [number, number] } = {
-            '1:1': [1, 1],
-            '16:9': [16, 9],
-            '9:16': [9, 16],
-            '4:3': [4, 3],
-            '3:4': [3, 4],
-          }
-          const [w, h] = ratioMap[aspectRatio] || [1, 1]
-          return { width: baseWidth, height: Math.round(baseWidth * h / w) }
-        }
-
-        const imageSize = getImageSize(config.aspectRatio || '1:1')
+        const centerPage = getViewportCenter(ed)
+        const imageSize = getImageSizeFromAspectRatio(config.aspectRatio || '1:1')
         const count = config.count || 1
-        const gap = 20 // 多张图片之间的间距
+        const gap = 20
 
-        // 计算布局：4张用2x2，其他用横排
-        const is2x2 = count === 4
-        const cols = is2x2 ? 2 : count
-        const rows = is2x2 ? 2 : 1
-
-        // 计算起始位置（让多张图片居中排列）
-        const totalWidth = cols * imageSize.width + (cols - 1) * gap
-        const totalHeight = rows * imageSize.height + (rows - 1) * gap
-        const startX = centerPage.x - totalWidth / 2
-        const startY = centerPage.y - totalHeight / 2
+        // 计算网格布局
+        const { startX, startY, is2x2 } = calculateGridLayout(centerPage, imageSize, count, gap)
 
         const newTasks: GenerationTask[] = []
         const batchId = `batch-${Date.now()}`  // 批次ID，用于标识同一批生成的图片
@@ -757,10 +723,7 @@ function TldrawAppContent() {
             // 生成完成后创建其他图片
             for (let i = 1; i < count; i++) {
               const newShapeId = createShapeId()
-              const col = is2x2 ? (i % 2) : i
-              const row = is2x2 ? Math.floor(i / 2) : 0
-              const shapeX = startX + col * (imageSize.width + gap)
-              const shapeY = startY + row * (imageSize.height + gap)
+              const { x: shapeX, y: shapeY } = getGridPosition(startX, startY, i, imageSize, is2x2, gap)
 
               const configWithBatch = {
                 ...config,
@@ -1034,42 +997,13 @@ function TldrawAppContent() {
       setHasCompletedOnboarding(true)
     }
 
-    const viewportBounds = editor.getViewportScreenBounds()
-    const centerScreen = {
-      x: viewportBounds.x + viewportBounds.width / 2,
-      y: viewportBounds.y + viewportBounds.height / 2,
-    }
-    const centerPage = editor.screenToPage(centerScreen)
-
-    // 根据 aspectRatio 计算实际尺寸
-    // 宽边固定为 320px
-    const getImageSize = (aspectRatio: string) => {
-      const baseWidth = 320
-      const ratioMap: { [key: string]: [number, number] } = {
-        '1:1': [1, 1],
-        '16:9': [16, 9],
-        '9:16': [9, 16],
-        '4:3': [4, 3],
-        '3:4': [3, 4],
-      }
-      const [w, h] = ratioMap[aspectRatio] || [1, 1]
-      return { width: baseWidth, height: Math.round(baseWidth * h / w) }
-    }
-
-    const imageSize = getImageSize(config.aspectRatio || '1:1')
+    const centerPage = getViewportCenter(editor)
+    const imageSize = getImageSizeFromAspectRatio(config.aspectRatio || '1:1', 320)
     const count = config.count || 1
-    const gap = 20 // 多张图片之间的间距
+    const gap = 20
 
-    // 计算布局：4张用2x2，其他用横排
-    const is2x2 = count === 4
-    const cols = is2x2 ? 2 : count
-    const rows = is2x2 ? 2 : 1
-
-    // 计算起始位置（让多张图片居中排列）
-    const totalWidth = cols * imageSize.width + (cols - 1) * gap
-    const totalHeight = rows * imageSize.height + (rows - 1) * gap
-    const startX = centerPage.x - totalWidth / 2
-    const startY = centerPage.y - totalHeight / 2
+    // 计算网格布局
+    const { startX, startY, is2x2 } = calculateGridLayout(centerPage, imageSize, count, gap)
 
     const newTasks: GenerationTask[] = []
     const batchId = `batch-${Date.now()}`  // 批次ID，用于标识同一批生成的图片
@@ -1155,10 +1089,7 @@ function TldrawAppContent() {
         // 生成完成后创建其他图片（从第2张开始）
         for (let i = 1; i < count; i++) {
           const newShapeId = createShapeId()
-          const col = is2x2 ? (i % 2) : i
-          const row = is2x2 ? Math.floor(i / 2) : 0
-          const shapeX = startX + col * (imageSize.width + gap)
-          const shapeY = startY + row * (imageSize.height + gap)
+          const { x: shapeX, y: shapeY } = getGridPosition(startX, startY, i, imageSize, is2x2, gap)
 
           const configWithBatch = {
             ...config,
@@ -1797,7 +1728,7 @@ function TldrawAppContent() {
         onProjectNameChange={setProjectName}
         zoom={zoom}
         onZoomChange={handleZoomChange}
-        credits={credits}
+        credits={200.20}
         onLogoClick={() => setShowLandingPage(true)}
         onGoHome={() => setShowLandingPage(true)}
         onGoToProjects={() => setShowAllProjectsPage(true)}
