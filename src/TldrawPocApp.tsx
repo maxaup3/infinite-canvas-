@@ -7,12 +7,11 @@ import {
   Tldraw,
   Editor,
   createShapeId,
-  TLComponents,
   useEditor,
   track,
   TLShapeId,
-} from 'tldraw'
-import 'tldraw/tldraw.css'
+} from '@tldraw/tldraw'
+import '@tldraw/tldraw/tldraw.css'
 import { AIImageShapeUtil, videoElementsMap } from './components/tldraw-poc/AIImageShape'
 import VideoControls from './components/tldraw-poc/VideoControls'
 import TopBar from './components/TopBar'
@@ -124,7 +123,8 @@ function CustomGrid({ x, y, z }: { x: number; y: number; z: number; size: number
 }
 
 // 隐藏 tldraw 默认 UI，使用自定义网格
-const components: TLComponents = {
+// v2 alpha 版本不需要 TLComponents 类型
+const components = {
   Toolbar: null,
   PageMenu: null,
   MainMenu: null,

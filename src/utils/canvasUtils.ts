@@ -2,7 +2,7 @@
  * 画布工具函数
  * 提取重复的逻辑，减少代码重复
  */
-import { Editor, createShapeId, TLShapeId } from 'tldraw'
+import { Editor, createShapeId, TLShapeId } from '@tldraw/tldraw'
 
 /**
  * 获取视口中心的页面坐标

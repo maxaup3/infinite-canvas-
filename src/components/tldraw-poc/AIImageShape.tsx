@@ -9,7 +9,7 @@ import {
   HTMLContainer,
   Rectangle2d,
   Geometry2d,
-} from 'tldraw'
+} from '@tldraw/tldraw'
 
 // 定义 AI 图片形状的属性
 export type AIImageShape = TLBaseShape<
@@ -57,17 +57,13 @@ export class AIImageShapeUtil extends ShapeUtil<any> {
   }
 
   // 是否可以缩放
-  override canResize() {
-    return true
-  }
+  override canResize = () => true
 
   // 禁止旋转
-  override hideRotateHandle() {
-    return true
-  }
+  override hideRotateHandle = () => true
 
   // 缩放处理
-  override onResize(shape: AIImageShape, info: any) {
+  override onResize = (shape: AIImageShape, info: any) => {
     return {
       props: {
         w: Math.max(50, shape.props.w * info.scaleX),

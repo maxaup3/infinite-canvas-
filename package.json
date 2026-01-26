@@ -29,7 +29,7 @@
     "react-dom": "^18.2.0",
     "react-konva": "^18.2.10",
     "tailwind-merge": "^3.4.0",
-    "tldraw": "^4.3.0"
+    "@tldraw/tldraw": "2.0.0-alpha.19"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",
