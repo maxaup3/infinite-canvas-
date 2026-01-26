@@ -79,7 +79,7 @@ const TopBar: React.FC<TopBarProps> = ({
     { label: 'Redo', shortcut: '⌘ ⇧ Z', action: onRedo, dividerAfter: false },
     { label: '复制画布', shortcut: '⌘ D', action: onDuplicate, dividerAfter: true },
     { label: '放大', shortcut: '⌘ +', action: () => onZoomChange(Math.min(200, zoom + 10)), dividerAfter: false },
-    { label: '缩小', shortcut: '⌘ -', action: () => onZoomChange(Math.max(10, zoom - 10)), dividerAfter: false },
+    { label: '缩小', shortcut: '⌘ −', action: () => onZoomChange(Math.max(10, zoom - 10)), dividerAfter: false },
   ];
 
   useEffect(() => {

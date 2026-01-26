@@ -440,9 +440,52 @@ const LayerPanel: React.FC<LayerPanelProps> = ({
                         />
                       )
                     ) : (
-                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <rect x="2" y="2" width="16" height="16" rx="2" stroke={Colors.text.secondary} strokeWidth="1.5" />
-                      </svg>
+                      // 生成中的 loading 态
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.08)',
+                          borderRadius: 4,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: 3,
+                          }}
+                        >
+                          {[0, 1, 2].map((i) => (
+                            <div
+                              key={i}
+                              style={{
+                                width: 4,
+                                height: 4,
+                                borderRadius: '50%',
+                                background: isLight ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.5)',
+                                animation: `layerLoadingDot 1.2s ease-in-out ${i * 0.2}s infinite`,
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <style>
+                          {`
+                            @keyframes layerLoadingDot {
+                              0%, 80%, 100% {
+                                opacity: 0.3;
+                                transform: scale(0.8);
+                              }
+                              40% {
+                                opacity: 1;
+                                transform: scale(1);
+                              }
+                            }
+                          `}
+                        </style>
+                      </div>
                     )}
                   </div>
 

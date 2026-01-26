@@ -107,7 +107,7 @@ const ImageToolbar: React.FC<ImageToolbarProps> = ({
   const toolbarX = screenX + screenWidth / 2;
   // 功能条底部距离图片顶部 28px
   const toolbarBottom = screenY - 28;
-  // 图片底部位置（用于定位编辑框）
+  // 图片底部位置（用于定位编辑框到图片下方）
   const imageBottom = imageBottomY !== undefined ? imageBottomY : (screenY + screenHeight);
 
   // 判断选中的媒介类型和数量
@@ -487,7 +487,7 @@ const ImageToolbar: React.FC<ImageToolbarProps> = ({
         <div
           style={{
             position: 'fixed',
-            top: `${imageBottom - 40}px`,
+            top: `${imageBottom + 16}px`,
             left: `${toolbarX}px`,
             transform: 'translateX(-50%)',
             backgroundColor: isLight ? 'rgba(245, 245, 245, 1)' : 'rgba(30, 30, 30, 0.95)',

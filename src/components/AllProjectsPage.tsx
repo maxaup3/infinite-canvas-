@@ -138,7 +138,7 @@ const AllProjectsPage: React.FC<AllProjectsPageProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
-                border: `1px solid ${colors.stroke.secondary}`,
+                border: `1.5px dashed ${colors.stroke.primary}`,
               }}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

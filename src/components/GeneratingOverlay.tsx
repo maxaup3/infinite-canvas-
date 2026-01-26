@@ -240,14 +240,16 @@ const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({
   return (
     <div
       style={{
-        position: 'absolute',
-        left: position.x - width / 2,
-        top: position.y - height / 2,
+        position: 'fixed',
+        left: position.x,
+        top: position.y,
         width: width,
         height: height,
+        zIndex: 1000,
+        pointerEvents: 'none',
         background: isLight
-          ? 'linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(20, 20, 35, 0.95) 100%)'
-          : 'linear-gradient(135deg, rgba(13, 13, 20, 0.95) 0%, rgba(8, 8, 15, 0.95) 100%)',
+          ? 'linear-gradient(135deg, rgba(40, 40, 60, 0.75) 0%, rgba(30, 30, 50, 0.75) 100%)'
+          : 'linear-gradient(135deg, rgba(25, 25, 35, 0.75) 0%, rgba(20, 20, 30, 0.75) 100%)',
         borderRadius: 0,
         overflow: 'hidden',
         border: 'none',

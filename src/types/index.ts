@@ -70,6 +70,7 @@ export interface GenerationTask {
   width: number;
   height: number;
   resultLayerId?: string;
+  shapeId?: string; // tldraw shape ID（用于跟踪生成遮罩位置）
   createdAt: string;
   startedAt?: number; // 开始时间戳（ms）
   estimatedDuration?: number; // 预计时长（秒）

@@ -14,7 +14,8 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest --watch",
     "test:unit": "vitest run src/components/__tests__",
-    "test:integration": "vitest run src/__tests__"
+    "test:integration": "vitest run src/__tests__",
+    "compare-canvas": "npx ts-node --esm scripts/compare-canvas.ts"
   },
   "dependencies": {
     "@vueuse/core": "^14.1.0",
@@ -27,7 +28,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-konva": "^18.2.10",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "tldraw": "^4.3.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",
