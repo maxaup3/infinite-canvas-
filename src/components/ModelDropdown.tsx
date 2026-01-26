@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Model } from '../types';
 import { Colors, Typography, BorderRadius, Spacing } from '../styles/constants';
-import { useTheme, getThemeStyles, isLightTheme as checkLightTheme } from '../contexts/ThemeContext';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 interface ModelDropdownProps {
   models: Model[];
@@ -19,12 +19,8 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
   onClose,
   position,
 }) => {
-  const { themeMode } = useTheme();
-  const theme = getThemeStyles(themeMode);
+  const { isLight: isLightTheme, theme, colors } = useThemedStyles();
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // 判断是否为浅色主题
-  const isLightTheme = checkLightTheme(themeMode);
 
   // 点击外部关闭由父组件处理，这里不需要
 
@@ -144,5 +140,5 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
   return createPortal(dropdownContent, document.body);
 };
 
-export default ModelDropdown;
+export default React.memo(ModelDropdown);
 

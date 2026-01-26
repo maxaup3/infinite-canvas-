@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useTheme, isLightTheme } from '../contexts/ThemeContext';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 export interface ContextMenuItem {
   id: string;
@@ -30,8 +30,7 @@ interface ContextMenuProps {
  * 设计参考 macOS 和 Figma 的菜单样式
  */
 const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
-  const { themeStyle } = useTheme();
-  const isLight = isLightTheme(themeStyle);
+  const { isLight } = useThemedStyles();
   const menuRef = useRef<HTMLDivElement>(null);
 
   // 点击外部关闭
@@ -258,4 +257,4 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, items, onClose }) => {
   return createPortal(menuContent, document.body);
 };
 
-export default ContextMenu;
+export default React.memo(ContextMenu);

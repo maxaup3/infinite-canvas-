@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useTheme, isLightTheme } from '../contexts/ThemeContext';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 // 星座数据 - 使用归一化坐标 (0-100)，便于自适应缩放
 // 每个星座的 lines 和 stars 坐标都是相对于 100x100 的基准尺寸
@@ -156,8 +156,7 @@ const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({
   elapsedTime = 0,
   estimatedTime = 0,
 }) => {
-  const { themeStyle } = useTheme();
-  const isLight = isLightTheme(themeStyle);
+  const { isLight } = useThemedStyles();
 
   // 随机选择两个星座和位置（组件挂载时确定）
   const [constellationsData] = useState(() => {
@@ -463,4 +462,4 @@ const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({
   );
 };
 
-export default GeneratingOverlay;
+export default React.memo(GeneratingOverlay);

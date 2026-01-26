@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { GenerationMode } from '../types';
 import { Colors, Typography, Spacing } from '../styles/constants';
-import { useTheme, getThemeStyles, isLightTheme as checkLightTheme } from '../contexts/ThemeContext';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 interface ModeSelectorProps {
   selectedMode: GenerationMode;
@@ -17,12 +17,8 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({
   onClose,
   position,
 }) => {
-  const { themeMode } = useTheme();
-  const theme = getThemeStyles(themeMode);
+  const { isLight: isLightTheme, theme, colors } = useThemedStyles();
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // 判断是否为浅色主题
-  const isLightTheme = checkLightTheme(themeMode);
 
   const modes: Array<{ id: GenerationMode; name: string; description: string }> = [
     {
@@ -123,4 +119,4 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({
   return createPortal(dropdownContent, document.body);
 };
 
-export default ModeSelector;
+export default React.memo(ModeSelector);

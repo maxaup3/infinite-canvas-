@@ -114,5 +114,5 @@ const Toast: React.FC<ToastProps> = ({ message, type, duration = 3000, onClose }
   );
 };
 
-export default Toast;
+export default React.memo(Toast);
 

@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { VideoCapability } from '../types';
 import { Typography, Spacing } from '../styles/constants';
-import { useTheme, getThemeStyles, isLightTheme as checkLightTheme } from '../contexts/ThemeContext';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 
 interface CapabilitySelectorProps {
   selectedCapability: VideoCapability;
@@ -18,11 +18,7 @@ const CapabilitySelector: React.FC<CapabilitySelectorProps> = ({
   position,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { themeMode } = useTheme();
-  const theme = getThemeStyles(themeMode);
-
-  // 判断是否为浅色主题
-  const isLightTheme = checkLightTheme(themeMode);
+  const { isLight: isLightTheme, theme } = useThemedStyles();
 
   const capabilities: Array<{ id: VideoCapability; name: string; description: string }> = [
     {
@@ -126,4 +122,4 @@ const CapabilitySelector: React.FC<CapabilitySelectorProps> = ({
   return createPortal(dropdownContent, document.body);
 };
 
-export default CapabilitySelector;
+export default React.memo(CapabilitySelector);
