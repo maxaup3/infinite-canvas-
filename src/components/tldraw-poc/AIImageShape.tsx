@@ -6,6 +6,7 @@ import { useRef, useEffect } from 'react'
 import {
   ShapeUtil,
   TLBaseShape,
+  TLShapeId,
   HTMLContainer,
   Rectangle2d,
   Geometry2d,
@@ -164,4 +165,41 @@ export class AIImageShapeUtil extends ShapeUtil<any> {
       />
     )
   }
+}
+
+// 类型守卫：判断 shape 是否为 ai-image 类型
+export function isAIImageShape(shape: { type: string }): boolean {
+  return shape.type === 'ai-image'
+}
+
+// 创建 AI 图片 shape 的 helper（收敛 as any 到一处）
+export function createAIImageShapeProps(params: {
+  id: TLShapeId
+  x: number
+  y: number
+  w: number
+  h: number
+  url: string
+  prompt?: string
+  model?: string
+  generatedAt?: number
+  isVideo?: boolean
+  generationConfig?: string
+}) {
+  return {
+    id: params.id,
+    type: 'ai-image' as const,
+    x: params.x,
+    y: params.y,
+    props: {
+      w: params.w,
+      h: params.h,
+      url: params.url,
+      prompt: params.prompt ?? '',
+      model: params.model ?? '',
+      generatedAt: params.generatedAt ?? Date.now(),
+      isVideo: params.isVideo ?? false,
+      generationConfig: params.generationConfig ?? '',
+    },
+  } as any // 唯一的 as any，收敛在一处
 }

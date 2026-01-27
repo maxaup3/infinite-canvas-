@@ -12,7 +12,7 @@ import {
   TLShapeId,
 } from 'tldraw'
 import 'tldraw/tldraw.css'
-import { AIImageShapeUtil, videoElementsMap } from './components/tldraw-poc/AIImageShape'
+import { AIImageShapeUtil, videoElementsMap, isAIImageShape, createAIImageShapeProps } from './components/tldraw-poc/AIImageShape'
 import VideoControls from './components/tldraw-poc/VideoControls'
 import TopBar from './components/TopBar'
 import BottomDialog, { BottomDialogRef } from './components/BottomDialog'
@@ -26,6 +26,8 @@ import ContextMenu, { ContextMenuEntry } from './components/ContextMenu'
 import LoadingScreen from './components/LoadingScreen'
 import { ImageLayer, GenerationTask, GenerationConfig, EditMode } from './types'
 import { ThemeProvider, useTheme, getThemeStyles, isLightTheme } from './contexts/ThemeContext'
+import { usePageNavigation } from './hooks/usePageNavigation'
+import { useUIState } from './hooks/useUIState'
 
 // 懒加载不常用的大型组件
 const LibraryDialog = lazy(() => import('./components/LibraryDialog'))
@@ -205,7 +207,7 @@ const CanvasContent = track(function CanvasContent({
       // 根据排序后的 ID 获取 ai-image shapes
       const aiShapes = sortedIds
         .map(id => editor.getShape(id))
-        .filter((s): s is NonNullable<typeof s> => s !== undefined && (s as any).type === 'ai-image')
+        .filter((s): s is NonNullable<typeof s> => s !== undefined && isAIImageShape(s))
 
       // 倒序排列（最上层的在数组前面，用于图层面板显示）
       const reversedAiShapes = [...aiShapes].reverse()
@@ -265,10 +267,13 @@ function TldrawAppContent() {
   const theme = getThemeStyles(themeStyle)
   const lightTheme = isLightTheme(themeStyle)
 
-  const [showLandingPage, setShowLandingPage] = useState(true)
-  const [showAllProjectsPage, setShowAllProjectsPage] = useState(false)
-  const [showLoading, setShowLoading] = useState(false)
-  const [isLoadingFadingOut, setIsLoadingFadingOut] = useState(false) // loading 渐出状态
+  const {
+    showLandingPage, setShowLandingPage,
+    showAllProjectsPage, setShowAllProjectsPage,
+    showLoading, setShowLoading,
+    isLoadingFadingOut,
+    handleLoadingFadeStart, handleLoadingComplete,
+  } = usePageNavigation()
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [pendingGenerationConfig, setPendingGenerationConfig] = useState<GenerationConfig | null>(null)
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false)
@@ -278,16 +283,18 @@ function TldrawAppContent() {
   const [zoom, setZoom] = useState(100)
   const [camera, setCamera] = useState({ x: 0, y: 0, z: 1 })
   const [projectName, setProjectName] = useState('Untitled')
-  const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(false)
-  const [isBottomDialogExpanded, setIsBottomDialogExpanded] = useState(true)
+  const {
+    deleteConfirmVisible, setDeleteConfirmVisible,
+    showDetailPanel, setShowDetailPanel,
+    showLibraryDialog, setShowLibraryDialog,
+    libraryInsertPosition, setLibraryInsertPosition,
+    contextMenu, setContextMenu,
+    isLayerPanelOpen, setIsLayerPanelOpen,
+    isBottomDialogExpanded, setIsBottomDialogExpanded,
+  } = useUIState()
   const [editMode, setEditMode] = useState<EditMode>('normal')
   const [generationTasks, setGenerationTasks] = useState<GenerationTask[]>([])
   const [toasts, setToasts] = useState<ToastItem[]>([])
-  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false)
-  const [showDetailPanel, setShowDetailPanel] = useState(false)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
-  const [showLibraryDialog, setShowLibraryDialog] = useState(false)
-  const [libraryInsertPosition, setLibraryInsertPosition] = useState<{ x: number; y: number } | null>(null)
   const [clipboardLayers, setClipboardLayers] = useState<ImageLayer[]>([])
   const [isLayerTransforming, setIsLayerTransforming] = useState(false)
   const [isCameraPanning, setIsCameraPanning] = useState(false)
@@ -493,21 +500,18 @@ function TldrawAppContent() {
         if (clipboardLayers.length > 0 && editor) {
           const offset = 30
           clipboardLayers.forEach((layer, index) => {
-            const newId = createShapeId();
-            (editor as any).createShape({
+            const newId = createShapeId()
+            editor.createShape(createAIImageShapeProps({
               id: newId,
-              type: 'ai-image',
               x: layer.x - layer.width / 2 + offset,
               y: layer.y - layer.height / 2 + offset,
-              props: {
-                w: layer.width,
-                h: layer.height,
-                url: layer.url,
-                prompt: `${layer.name} (副本)`,
-                isVideo: layer.type === 'video',
-                generationConfig: layer.generationConfig ? JSON.stringify(layer.generationConfig) : '',
-              },
-            })
+              w: layer.width,
+              h: layer.height,
+              url: layer.url,
+              prompt: `${layer.name} (副本)`,
+              isVideo: layer.type === 'video',
+              generationConfig: layer.generationConfig ? JSON.stringify(layer.generationConfig) : '',
+            }))
           })
           addToast(`已粘贴 ${clipboardLayers.length} 个图层`, 'success')
         }
@@ -571,22 +575,19 @@ function TldrawAppContent() {
         const video = document.createElement('video')
         video.src = dataUrl
         video.onloadedmetadata = () => {
-          const shapeId = createShapeId();
-          (editor as any).createShape({
+          const shapeId = createShapeId()
+          editor.createShape(createAIImageShapeProps({
             id: shapeId,
-            type: 'ai-image',
             x: position.x - video.videoWidth / 2,
             y: position.y - video.videoHeight / 2,
-            props: {
-              w: video.videoWidth,
-              h: video.videoHeight,
-              url: dataUrl,
-              prompt: file.name,
-              model: 'local-upload',
-              generatedAt: Date.now(),
-              isVideo: true,
-            },
-          })
+            w: video.videoWidth,
+            h: video.videoHeight,
+            url: dataUrl,
+            prompt: file.name,
+            model: 'local-upload',
+            generatedAt: Date.now(),
+            isVideo: true,
+          }))
           editor.select(shapeId)
         }
       } else {
@@ -597,22 +598,19 @@ function TldrawAppContent() {
           img.src = dataUrl
         })
 
-        const shapeId = createShapeId();
-        (editor as any).createShape({
+        const shapeId = createShapeId()
+        editor.createShape(createAIImageShapeProps({
           id: shapeId,
-          type: 'ai-image',
           x: position.x - width / 2,
           y: position.y - height / 2,
-          props: {
-            w: width,
-            h: height,
-            url: dataUrl,
-            prompt: file.name,
-            model: 'local-upload',
-            generatedAt: Date.now(),
-            isVideo: false,
-          },
-        })
+          w: width,
+          h: height,
+          url: dataUrl,
+          prompt: file.name,
+          model: 'local-upload',
+          generatedAt: Date.now(),
+          isVideo: false,
+        }))
         editor.select(shapeId)
       }
     }
@@ -627,22 +625,19 @@ function TldrawAppContent() {
 
     const img = new Image()
     img.onload = () => {
-      const shapeId = createShapeId();
-      (editor as any).createShape({
+      const shapeId = createShapeId()
+      editor.createShape(createAIImageShapeProps({
         id: shapeId,
-        type: 'ai-image',
         x: libraryInsertPosition.x - img.width / 2,
         y: libraryInsertPosition.y - img.height / 2,
-        props: {
-          w: img.width,
-          h: img.height,
-          url: imageUrl,
-          prompt: 'Library Image',
-          model: 'library',
-          generatedAt: Date.now(),
-          isVideo: false,
-        },
-      })
+        w: img.width,
+        h: img.height,
+        url: imageUrl,
+        prompt: 'Library Image',
+        model: 'library',
+        generatedAt: Date.now(),
+        isVideo: false,
+      }))
       editor.select(shapeId)
     }
     img.src = imageUrl
@@ -690,20 +685,17 @@ function TldrawAppContent() {
           batchTotal: count,
         }
 
-        ed.createShape({
+        ed.createShape(createAIImageShapeProps({
           id: firstShapeId,
-          type: 'ai-image' as any,
           x: firstShapeX,
           y: firstShapeY,
-          props: {
-            w: imageSize.width,
-            h: imageSize.height,
-            url: '',
-            prompt: config.prompt,
-            isVideo: config.mode === 'video',
-            generationConfig: JSON.stringify(firstConfigWithBatch),
-          },
-        })
+          w: imageSize.width,
+          h: imageSize.height,
+          url: '',
+          prompt: config.prompt,
+          isVideo: config.mode === 'video',
+          generationConfig: JSON.stringify(firstConfigWithBatch),
+        }))
 
         ed.select(firstShapeId)
 
@@ -741,14 +733,14 @@ function TldrawAppContent() {
               : `https://picsum.photos/seed/${Date.now()}/${imageSize.width * 2}/${imageSize.height * 2}`
 
             ed.updateShape({
-              id: firstShapeId as any,
-              type: 'ai-image' as any,
+              id: firstShapeId,
+              type: 'ai-image' as const,
               props: {
                 url: firstMediaUrl,
                 model: config.model,
                 generatedAt: Date.now(),
               },
-            })
+            } as any)
 
             // 生成完成后创建其他图片
             for (let i = 1; i < count; i++) {
@@ -766,22 +758,19 @@ function TldrawAppContent() {
                 ? 'https://www.w3schools.com/html/mov_bbb.mp4'
                 : `https://picsum.photos/seed/${Date.now() + i}/${imageSize.width * 2}/${imageSize.height * 2}`
 
-              ed.createShape({
+              ed.createShape(createAIImageShapeProps({
                 id: newShapeId,
-                type: 'ai-image' as any,
                 x: shapeX,
                 y: shapeY,
-                props: {
-                  w: imageSize.width,
-                  h: imageSize.height,
-                  url: mediaUrl,
-                  prompt: config.prompt,
-                  model: config.model,
-                  generatedAt: Date.now(),
-                  isVideo: isVideoMode,
-                  generationConfig: JSON.stringify(configWithBatch),
-                },
-              })
+                w: imageSize.width,
+                h: imageSize.height,
+                url: mediaUrl,
+                prompt: config.prompt,
+                model: config.model,
+                generatedAt: Date.now(),
+                isVideo: isVideoMode,
+                generationConfig: JSON.stringify(configWithBatch),
+              }))
 
               allShapeIds.push(newShapeId as string)
             }
@@ -816,21 +805,18 @@ function TldrawAppContent() {
           video.src = dataUrl
           video.onloadedmetadata = () => {
             const shapeId = createShapeId();
-            (ed as any).createShape({
+            ed.createShape(createAIImageShapeProps({
               id: shapeId,
-              type: 'ai-image',
               x: position.x - video.videoWidth / 2,
               y: position.y - video.videoHeight / 2,
-              props: {
-                w: video.videoWidth,
-                h: video.videoHeight,
-                url: dataUrl,
-                prompt: file.name,
-                model: 'local-upload',
-                generatedAt: Date.now(),
-                isVideo: true,
-              },
-            })
+              w: video.videoWidth,
+              h: video.videoHeight,
+              url: dataUrl,
+              prompt: file.name,
+              model: 'local-upload',
+              generatedAt: Date.now(),
+              isVideo: true,
+            }))
             ed.select(shapeId)
           }
         } else {
@@ -840,22 +826,19 @@ function TldrawAppContent() {
             img.src = dataUrl
           })
 
-          const shapeId = createShapeId();
-          (ed as any).createShape({
+          const shapeId = createShapeId()
+          ed.createShape(createAIImageShapeProps({
             id: shapeId,
-            type: 'ai-image',
             x: position.x - width / 2,
             y: position.y - height / 2,
-            props: {
-              w: width,
-              h: height,
-              url: dataUrl,
-              prompt: file.name,
-              model: 'local-upload',
-              generatedAt: Date.now(),
-              isVideo: false,
-            },
-          })
+            w: width,
+            h: height,
+            url: dataUrl,
+            prompt: file.name,
+            model: 'local-upload',
+            generatedAt: Date.now(),
+            isVideo: false,
+          }))
           ed.select(shapeId)
         }
       }
@@ -938,21 +921,18 @@ function TldrawAppContent() {
   // 添加图层
   const handleLayerAdd = useCallback((layer: Omit<ImageLayer, 'id'>): string => {
     if (!editor) return ''
-    const id = createShapeId();
-    (editor as any).createShape({
+    const id = createShapeId()
+    editor.createShape(createAIImageShapeProps({
       id,
-      type: 'ai-image',
       x: layer.x - layer.width / 2,
       y: layer.y - layer.height / 2,
-      props: {
-        w: layer.width,
-        h: layer.height,
-        url: layer.url,
-        prompt: layer.name,
-        isVideo: layer.type === 'video',
-        generationConfig: layer.generationConfig ? JSON.stringify(layer.generationConfig) : '',
-      },
-    })
+      w: layer.width,
+      h: layer.height,
+      url: layer.url,
+      prompt: layer.name,
+      isVideo: layer.type === 'video',
+      generationConfig: layer.generationConfig ? JSON.stringify(layer.generationConfig) : '',
+    }))
     return id as string
   }, [editor])
 
@@ -969,7 +949,7 @@ function TldrawAppContent() {
     // 只获取 ai-image shapes
     const aiShapeIds = sortedIds.filter(id => {
       const shape = editor.getShape(id)
-      return shape && (shape as any).type === 'ai-image'
+      return shape && isAIImageShape(shape)
     })
 
     // aiShapeIds 是 tldraw 的原始顺序（index 越大，z-index 越高）
@@ -1042,20 +1022,17 @@ function TldrawAppContent() {
     }
 
     // 创建第一张图的占位符 shape（遮罩会跟随这个 shape 移动）
-    ;(editor as any).createShape({
+    editor.createShape(createAIImageShapeProps({
       id: firstShapeId,
-      type: 'ai-image' as any,
       x: firstShapeX,
       y: firstShapeY,
-      props: {
-        w: imageSize.width,
-        h: imageSize.height,
-        url: '',  // 空 url 表示正在生成
-        prompt: config.prompt,
-        isVideo: config.mode === 'video',
-        generationConfig: JSON.stringify(firstConfigWithBatch),
-      },
-    })
+      w: imageSize.width,
+      h: imageSize.height,
+      url: '',  // 空 url 表示正在生成
+      prompt: config.prompt,
+      isVideo: config.mode === 'video',
+      generationConfig: JSON.stringify(firstConfigWithBatch),
+    }))
 
     // 选中第一张图
     editor.select(firstShapeId)
@@ -1096,14 +1073,14 @@ function TldrawAppContent() {
           : `https://picsum.photos/seed/${Date.now()}/${imageSize.width * 2}/${imageSize.height * 2}`
 
         editor.updateShape({
-          id: firstShapeId as any,
-          type: 'ai-image' as any,
+          id: firstShapeId,
+          type: 'ai-image' as const,
           props: {
             url: firstMediaUrl,
             model: config.model,
             generatedAt: Date.now(),
           },
-        })
+        } as any)
 
         // 生成完成后创建其他图片（从第2张开始）
         for (let i = 1; i < count; i++) {
@@ -1121,22 +1098,19 @@ function TldrawAppContent() {
             ? 'https://www.w3schools.com/html/mov_bbb.mp4'
             : `https://picsum.photos/seed/${Date.now() + i}/${imageSize.width * 2}/${imageSize.height * 2}`
 
-          ;(editor as any).createShape({
+          editor.createShape(createAIImageShapeProps({
             id: newShapeId,
-            type: 'ai-image' as any,
             x: shapeX,
             y: shapeY,
-            props: {
-              w: imageSize.width,
-              h: imageSize.height,
-              url: mediaUrl,
-              prompt: config.prompt,
-              model: config.model,
-              generatedAt: Date.now(),
-              isVideo: isVideoMode,
-              generationConfig: JSON.stringify(configWithBatch),
-            },
-          })
+            w: imageSize.width,
+            h: imageSize.height,
+            url: mediaUrl,
+            prompt: config.prompt,
+            model: config.model,
+            generatedAt: Date.now(),
+            isVideo: isVideoMode,
+            generationConfig: JSON.stringify(configWithBatch),
+          }))
 
           allShapeIds.push(newShapeId as string)
         }
@@ -1349,21 +1323,18 @@ function TldrawAppContent() {
 
       // 创建新的合并图层
       const newShapeId = createShapeId()
-      editor.createShape({
+      editor.createShape(createAIImageShapeProps({
         id: newShapeId,
-        type: 'ai-image' as const,
         x: minX,
         y: minY,
-        props: {
-          w: mergedWidth,
-          h: mergedHeight,
-          url: mergedUrl,
-          prompt: '合并图层',
-          model: '',
-          generatedAt: Date.now(),
-          isVideo: false,
-        },
-      } as any)
+        w: mergedWidth,
+        h: mergedHeight,
+        url: mergedUrl,
+        prompt: '合并图层',
+        model: '',
+        generatedAt: Date.now(),
+        isVideo: false,
+      }))
 
       // 选中新创建的图层
       editor.select(newShapeId)
@@ -1396,18 +1367,6 @@ function TldrawAppContent() {
     setShowLandingPage(false)
   }, [])
 
-  // Loading 完成回调 - 开始渐出
-  const handleLoadingFadeStart = useCallback(() => {
-    setIsLoadingFadingOut(true)
-  }, [])
-
-  // Loading 完全消失后的回调
-  const handleLoadingComplete = useCallback(() => {
-    setShowLoading(false)
-    setIsLoadingFadingOut(false)
-    // 生成任务会在 handleMount 中处理（当 editor 准备好时）
-    // pendingGenerationConfigRef.current 保持不变，等待 handleMount 使用
-  }, [])
 
   // 处理从首页开始生成
   const handleStartGeneration = useCallback((config: GenerationConfig) => {
@@ -1961,7 +1920,7 @@ function TldrawAppContent() {
         .map(task => {
           // 如果有关联的shape，使用shape的实时位置
           if (task.shapeId && editor) {
-            const shape = editor.getShape(task.shapeId as any)
+            const shape = editor.getShape(task.shapeId as TLShapeId)
             if (shape) {
               const bounds = editor.getShapePageBounds(shape)
               if (bounds) {
