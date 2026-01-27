@@ -212,6 +212,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
               ...prev,
               videoCapability: 'image-to-video',
               videoStartFrame: imageUrls[0],
+              aspectRatio: 'keep',
             };
           }
           // 首尾帧模式：需要填入两张图片
@@ -234,6 +235,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
               return {
                 ...prev,
                 videoStartFrame: imageUrls[0],
+                aspectRatio: 'keep',
               };
             }
           }
@@ -251,6 +253,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
             return {
               ...prev,
               videoStartFrame: imageUrls[0],
+              aspectRatio: 'keep',
             };
           }
         }
@@ -307,6 +310,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
           videoCapability: 'first-last-frame',
           videoStartFrame: startFrame,
           videoEndFrame: endFrame,
+          aspectRatio: 'keep',
         }));
       } else {
         // 只有一张图：使用图生视频模式
@@ -315,6 +319,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
           videoCapability: 'image-to-video',
           videoStartFrame: startFrame,
           videoEndFrame: undefined,
+          aspectRatio: 'keep',
         }));
       }
     },
@@ -1125,6 +1130,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                                           ...prev,
                                           videoEndFrame: url,
                                           videoCapability: 'first-last-frame',
+                                          ...(!prev.videoStartFrame && !prev.videoEndFrame ? { aspectRatio: 'keep' } : {}),
                                         }));
                                       };
                                       reader.readAsDataURL(file);
@@ -1170,7 +1176,11 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                               const reader = new FileReader();
                               reader.onload = (event) => {
                                 const url = event.target?.result as string;
-                                setConfig(prev => ({ ...prev, videoStartFrame: url }));
+                                setConfig(prev => ({
+                                  ...prev,
+                                  videoStartFrame: url,
+                                  ...(!prev.videoStartFrame ? { aspectRatio: 'keep' } : {}),
+                                }));
                               };
                               reader.readAsDataURL(file);
                             }
@@ -1316,7 +1326,11 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                                   const reader = new FileReader();
                                   reader.onload = (event) => {
                                     const url = event.target?.result as string;
-                                    setConfig(prev => ({ ...prev, videoEndFrame: url }));
+                                    setConfig(prev => ({
+                                      ...prev,
+                                      videoEndFrame: url,
+                                      ...(!prev.videoStartFrame && !prev.videoEndFrame ? { aspectRatio: 'keep' } : {}),
+                                    }));
                                   };
                                   reader.readAsDataURL(file);
                                 }
@@ -2543,7 +2557,9 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                       }}>Aspect Ratio</div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                         {['keep', '16:9', '9:16', '1:1', '4:3', '3:4'].map((ratio) => {
-                          const hasReferenceImage = (config.referenceImages?.length ?? 0) > 0;
+                          const hasReferenceImage = config.mode === 'video'
+                            ? !!(config.videoStartFrame || config.videoEndFrame)
+                            : (config.referenceImages?.length ?? 0) > 0;
                           const isDisabled = ratio === 'keep' && !hasReferenceImage;
                           const isSelected = ratio === config.aspectRatio;
                           const getRatioIcon = (r: string) => {
@@ -2737,7 +2753,9 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                       }}>Aspect Ratio</div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                         {['keep', '16:9', '9:16', '1:1', '4:3', '3:4'].map((ratio) => {
-                          const hasReferenceImage = (config.referenceImages?.length ?? 0) > 0;
+                          const hasReferenceImage = config.mode === 'video'
+                            ? !!(config.videoStartFrame || config.videoEndFrame)
+                            : (config.referenceImages?.length ?? 0) > 0;
                           const isDisabled = ratio === 'keep' && !hasReferenceImage;
                           const isSelected = ratio === config.aspectRatio;
                           const getRatioIcon = (r: string) => {
