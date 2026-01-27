@@ -1021,7 +1021,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
           >
             {/* 视频模式 - 首帧上传（内联显示） */}
             {config.mode === 'video' && config.videoCapability !== 'text-to-video' && (() => {
-              const frameHeight = isLandingPage ? 120 : 96;
+              const frameHeight = isLandingPage ? 120 : 72;
               const frameWidth = Math.round(frameHeight * 2 / 3);
 
               return (
@@ -1367,7 +1367,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                 <>
                   {config.referenceImages.map((imageUrl, index) => {
                     // 高度与 textarea maxHeight 一致，比例 2:3
-                    const imgHeight = isLandingPage ? 120 : 96;
+                    const imgHeight = isLandingPage ? 120 : 72;
                     const imgWidth = Math.round(imgHeight * 2 / 3);
                     const isDisabled = index >= maxImages;
 
@@ -1492,7 +1492,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
               onChange={(e) => {
                 setConfig(prev => ({ ...prev, prompt: e.target.value }));
                 // 自动调整高度：首页5行(120px)，画布3行(72px)
-                const maxH = isLandingPage ? 120 : 96;
+                const maxH = isLandingPage ? 120 : 72;
                 e.target.style.height = 'auto';
                 e.target.style.height = Math.min(e.target.scrollHeight, maxH) + 'px';
               }}
@@ -1503,8 +1503,8 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
               style={{
                 flex: 1,
                 minWidth: 360,
-                minHeight: isLandingPage ? 24 : 96,
-                maxHeight: isLandingPage ? 120 : 96,
+                minHeight: isLandingPage ? 24 : 72,
+                maxHeight: isLandingPage ? 120 : 72,
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
@@ -1522,7 +1522,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
                 overflowX: 'hidden',
                 wordWrap: 'break-word',
               }}
-              rows={isLandingPage ? 1 : 4}
+              rows={isLandingPage ? 1 : 3}
             />
 
             {/* 右侧区域：Loras（最多6个） */}
@@ -1535,7 +1535,7 @@ const BottomDialog = forwardRef<BottomDialogRef, BottomDialogProps>(({
               if (loras.length === 0) return null;
 
               // 高度与 textarea maxHeight 一致，比例 2:3
-              const loraHeight = isLandingPage ? 120 : 96;
+              const loraHeight = isLandingPage ? 120 : 72;
               const loraWidth = Math.round(loraHeight * 2 / 3);
 
               return (
