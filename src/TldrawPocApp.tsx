@@ -1520,34 +1520,25 @@ function TldrawAppContent() {
               : undefined,
           }}
         >
-          {/* 垂直网格线 */}
-          {[...Array(12)].map((_, i) => (
-            <div
-              key={`canvas-v-${i}`}
-              style={{
-                position: 'absolute',
-                left: `${(i + 1) * 8.33}%`,
-                top: 0,
-                width: '1px',
-                height: '100%',
-                background: `linear-gradient(90deg, transparent, ${gridLineColor}, transparent)`,
-              }}
-            />
-          ))}
-          {/* 水平网格线 */}
-          {[...Array(8)].map((_, i) => (
-            <div
-              key={`canvas-h-${i}`}
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: `${(i + 1) * 12.5}%`,
-                width: '100%',
-                height: '1px',
-                background: `linear-gradient(90deg, transparent, ${gridLineColor}, transparent)`,
-              }}
-            />
-          ))}
+          {/* 网格线 - 使用单个 SVG 替代 20 个 DOM 节点 */}
+          <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0 }}>
+            {Array.from({ length: 12 }, (_, i) => (
+              <line
+                key={`v-${i}`}
+                x1={`${(i + 1) * 8.33}%`} y1="0"
+                x2={`${(i + 1) * 8.33}%`} y2="100%"
+                stroke={gridLineColor} strokeWidth="1"
+              />
+            ))}
+            {Array.from({ length: 8 }, (_, i) => (
+              <line
+                key={`h-${i}`}
+                x1="0" y1={`${(i + 1) * 12.5}%`}
+                x2="100%" y2={`${(i + 1) * 12.5}%`}
+                stroke={gridLineColor} strokeWidth="1"
+              />
+            ))}
+          </svg>
         </div>
 
         <style>{`

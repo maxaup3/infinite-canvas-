@@ -28,18 +28,16 @@ export const getIconFilterWithOpacity = (isLight: boolean, opacity: number = 0.8
 export const useThemedStyles = () => {
   const { themeMode } = useTheme();
 
-  const isLight = useMemo(() => checkIsLight(themeMode), [themeMode]);
-  const colors = useMemo(() => getThemeColors(isLight), [isLight]);
-  const theme = useMemo(() => getThemeStyles(themeMode), [themeMode]);
-  const iconFilter = useMemo(() => getIconFilter(isLight), [isLight]);
-
-  return {
-    isLight,
-    colors,
-    theme,
-    iconFilter,
-    themeMode,
-  };
+  return useMemo(() => {
+    const isLight = checkIsLight(themeMode);
+    return {
+      isLight,
+      colors: getThemeColors(isLight),
+      theme: getThemeStyles(themeMode),
+      iconFilter: getIconFilter(isLight),
+      themeMode,
+    };
+  }, [themeMode]);
 };
 
 /**
